@@ -94,6 +94,7 @@ import org.apache.iotdb.db.qp.physical.sys.ShowPlan;
 import org.apache.iotdb.db.qp.physical.sys.ShowPlan.ShowContentType;
 import org.apache.iotdb.db.qp.physical.sys.ShowTTLPlan;
 import org.apache.iotdb.db.qp.physical.sys.ShowTimeSeriesPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.SchemaUtils;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Path;
@@ -677,10 +678,10 @@ public class PhysicalGenerator {
   }
 
   protected List<String> getMatchedTimeseries(String path) throws MetadataException {
-    return MManager.getInstance().getAllTimeseriesName(path);
+    return IoTDB.getMManager().getAllTimeseriesName(path);
   }
 
   protected Set<String> getMatchedDevices(String path) throws MetadataException {
-    return MManager.getInstance().getDevices(path);
+    return IoTDB.getMManager().getDevices(path);
   }
 }

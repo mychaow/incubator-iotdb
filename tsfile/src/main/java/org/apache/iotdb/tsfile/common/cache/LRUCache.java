@@ -63,4 +63,8 @@ public abstract class LRUCache<K, T> implements Cache<K, T> {
   public synchronized void removeItem(K key) {
     cache.remove(key);
   }
+
+  public synchronized Map<K, T> getAllItems() {
+    return cache;
+  }
 }

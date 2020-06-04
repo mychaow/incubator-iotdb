@@ -27,6 +27,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.db.utils.RandomNum;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
@@ -65,7 +66,7 @@ public class FileNodeManagerBenchmark {
 
   private static void prepare()
       throws MetadataException {
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
     manager.setStorageGroup(prefix);
     for (String device : devices) {
       for (String measurement : measurements) {

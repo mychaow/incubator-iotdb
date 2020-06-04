@@ -30,6 +30,7 @@ import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.query.control.FileReaderManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.write.record.TSRecord;
@@ -47,7 +48,7 @@ public abstract class ReaderTestHelper {
   private String systemDir = TestConstant.OUTPUT_DATA_DIR.concat("info");
 
   static {
-    MManager.getInstance().init();
+    IoTDB.getMManager().init();
   }
 
   @Before

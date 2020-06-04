@@ -35,6 +35,7 @@ import org.apache.iotdb.db.qp.logical.crud.FunctionOperator;
 import org.apache.iotdb.db.qp.logical.crud.QueryOperator;
 import org.apache.iotdb.db.qp.logical.crud.SFWOperator;
 import org.apache.iotdb.db.qp.logical.crud.SelectOperator;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -317,6 +318,6 @@ public class ConcatPathOptimizer implements ILogicalOptimizer {
   }
 
   protected List<Path> removeWildcard(String path) throws MetadataException {
-    return MManager.getInstance().getAllTimeseriesPath(path);
+    return IoTDB.getMManager().getAllTimeseriesPath(path);
   }
 }

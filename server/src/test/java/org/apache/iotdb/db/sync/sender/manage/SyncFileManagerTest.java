@@ -39,6 +39,7 @@ import org.apache.iotdb.db.exception.StartupException;
 import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.sync.conf.SyncSenderConfig;
 import org.apache.iotdb.db.sync.conf.SyncSenderDescriptor;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
@@ -77,7 +78,7 @@ public class SyncFileManagerTest {
 
     Random r = new Random(0);
     for (int i = 0; i < 3; i++) {
-      MManager.getInstance().setStorageGroup(getSgName(i));
+      IoTDB.getMManager().setStorageGroup(getSgName(i));
     }
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 5; j++) {

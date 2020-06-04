@@ -25,6 +25,7 @@ import org.apache.iotdb.db.conf.IoTDBConfig;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.exception.ConfigAdjusterException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -53,7 +54,7 @@ public class IoTDBConfigDynamicAdapterTest {
     CONFIG.setMaxMemtableNumber(oldMaxMemTableNumber);
     CONFIG.setTsFileSizeThreshold(oldTsFileThreshold);
     CONFIG.setMemtableSizeThreshold(oldGroupSizeInByte);
-    MManager.getInstance().setMaxSeriesNumberAmongStorageGroup(0);
+    IoTDB.getMManager().setMaxSeriesNumberAmongStorageGroup(0);
     IoTDBConfigDynamicAdapter.getInstance().reset();
   }
 
@@ -63,7 +64,7 @@ public class IoTDBConfigDynamicAdapterTest {
     for (int i = 1; i < 100; i++) {
       IoTDBConfigDynamicAdapter.getInstance().addOrDeleteTimeSeries(1);
     }
-    MManager.getInstance().setMaxSeriesNumberAmongStorageGroup(100);
+    IoTDB.getMManager().setMaxSeriesNumberAmongStorageGroup(100);
     for (int i = 1; i < 1000000; i++) {
       try {
         IoTDBConfigDynamicAdapter.getInstance().addOrDeleteStorageGroup(1);
@@ -86,13 +87,13 @@ public class IoTDBConfigDynamicAdapterTest {
     for (int i = 1; i < 100; i++) {
       IoTDBConfigDynamicAdapter.getInstance().addOrDeleteStorageGroup(1);
     }
-    MManager.getInstance().setMaxSeriesNumberAmongStorageGroup(100);
+    IoTDB.getMManager().setMaxSeriesNumberAmongStorageGroup(100);
     for (int i = 1; i < 1000000; i++) {
       try {
         IoTDBConfigDynamicAdapter.getInstance().addOrDeleteTimeSeries(1);
 
         if (i % 10 == 0) {
-          MManager.getInstance().setMaxSeriesNumberAmongStorageGroup(i);
+          IoTDB.getMManager().setMaxSeriesNumberAmongStorageGroup(i);
         }
         totalTimeseries += 1;
         assertEquals(IoTDBConfigDynamicAdapter.getInstance().getCurrentMemTableSize(),
@@ -119,7 +120,7 @@ public class IoTDBConfigDynamicAdapterTest {
     try {
       for (; i <= 280 * 3200; i++) {
         IoTDBConfigDynamicAdapter.getInstance().addOrDeleteTimeSeries(1);
-        MManager.getInstance().setMaxSeriesNumberAmongStorageGroup(i / 30 + 1);
+        IoTDB.getMManager().setMaxSeriesNumberAmongStorageGroup(i / 30 + 1);
       }
     } catch (ConfigAdjusterException e) {
       assertEquals(String.format(ConfigAdjusterException.ERROR_MSG_FORMAT,
@@ -128,7 +129,7 @@ public class IoTDBConfigDynamicAdapterTest {
     try {
       while (true) {
         IoTDBConfigDynamicAdapter.getInstance().addOrDeleteTimeSeries(1);
-        MManager.getInstance().setMaxSeriesNumberAmongStorageGroup(MManager.getInstance().getMaximalSeriesNumberAmongStorageGroups() + 1);
+        IoTDB.getMManager().setMaxSeriesNumberAmongStorageGroup(IoTDB.getMManager().getMaximalSeriesNumberAmongStorageGroups() + 1);
       }
     } catch (ConfigAdjusterException e ) {
       assertEquals(String.format(ConfigAdjusterException.ERROR_MSG_FORMAT,

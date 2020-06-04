@@ -37,13 +37,14 @@ import org.apache.iotdb.db.qp.physical.sys.LoadConfigurationPlan;
 import org.apache.iotdb.db.qp.physical.sys.SetStorageGroupPlan;
 import org.apache.iotdb.db.qp.physical.sys.SetTTLPlan;
 import org.apache.iotdb.db.qp.physical.sys.ShowTimeSeriesPlan;
+import org.apache.iotdb.db.writelog.node.ISerialize;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 
 /**
  * This class is a abstract class for all type of PhysicalPlan.
  */
-public abstract class PhysicalPlan {
+public abstract class PhysicalPlan implements ISerialize {
 
   private static final String SERIALIZATION_UNIMPLEMENTED = "serialization unimplemented";
 
@@ -112,6 +113,7 @@ public abstract class PhysicalPlan {
    *
    * @param buffer
    */
+  @Override
   public void serialize(ByteBuffer buffer) {
     throw new UnsupportedOperationException(SERIALIZATION_UNIMPLEMENTED);
   }
@@ -122,6 +124,7 @@ public abstract class PhysicalPlan {
    *
    * @param buffer
    */
+  @Override
   public void deserialize(ByteBuffer buffer) {
     throw new UnsupportedOperationException(SERIALIZATION_UNIMPLEMENTED);
   }

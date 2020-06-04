@@ -22,7 +22,7 @@ import java.io.IOException;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.BatchData;
 
-public class FakedBatchReader implements IBatchReader {
+public class FakedBatchReader implements IBatchReader<T> {
 
   private BatchData data;
   private boolean hasCached = false;

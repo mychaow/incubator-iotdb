@@ -31,9 +31,11 @@ import org.apache.iotdb.db.exception.metadata.PathNotExistException;
 import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.qp.executor.PlanExecutor;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,11 +88,11 @@ abstract class BaseApplier implements LogApplier {
         logger.debug("Timeseries is not found locally, try pulling it from another group: {}",
             e.getCause().getMessage());
         try {
-          List<MeasurementSchema> schemas = metaGroupMember
-              .pullTimeSeriesSchemas(Collections.singletonList(plan.getDeviceId()));
-          for (MeasurementSchema schema : schemas) {
-            registerMeasurement(plan.getDeviceId() + IoTDBConstant.PATH_SEPARATOR + schema.getMeasurementId(),
-                schema);
+          List<MeasurementMeta> metas = metaGroupMember
+              .pullTimeSeriesSchemas(Collections.singletonList(plan.getDeviceId()), plan);
+          for (MeasurementMeta meta : metas) {
+            registerMeasurement(plan.getDeviceId() + IoTDBConstant.PATH_SEPARATOR + meta.getSchema().getMeasurementId(),
+                meta);
           }
         } catch (MetadataException e1) {
           throw new QueryProcessException(e1);
@@ -124,8 +126,8 @@ abstract class BaseApplier implements LogApplier {
     return null;
   }
 
-  protected void registerMeasurement(String path, MeasurementSchema schema) {
-    MManager.getInstance().cacheSchema(path, schema);
+  protected void registerMeasurement(String path, MeasurementMeta meta) {
+    IoTDB.getMManager().cacheMeta(path, meta);
   }
 
   protected PlanExecutor getQueryExecutor() throws QueryProcessException {

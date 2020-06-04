@@ -92,6 +92,7 @@ import org.apache.iotdb.db.exception.metadata.PathNotExistException;
 import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.qp.executor.PlanExecutor;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
@@ -101,6 +102,7 @@ import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
 import org.apache.iotdb.db.query.reader.series.IReaderByTimestamp;
 import org.apache.iotdb.db.query.reader.series.ManagedSeriesReader;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.rpc.TSStatusCode;
 import org.apache.iotdb.service.rpc.thrift.TSStatus;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -207,20 +209,22 @@ public class MetaGroupMemberTest extends MemberTest {
       AsyncMethodCallback<PullSchemaResp> resultHandler) {
     new Thread(() -> {
       try {
-        List<MeasurementSchema> schemas = new ArrayList<>();
+        List<MeasurementMeta> schemas = new ArrayList<>();
         List<String> prefixPaths = request.getPrefixPaths();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
         for (String prefixPath : prefixPaths) {
           if (!prefixPath.equals(TestUtils.getTestSeries(10, 0))) {
-            MManager.getInstance().collectSeries(prefixPath, schemas);
+            IoTDB.getMManager().collectSeries(prefixPath, schemas);
             dataOutputStream.writeInt(schemas.size());
-            for (MeasurementSchema schema : schemas) {
+            for (MeasurementMeta schema : schemas) {
               schema.serializeTo(dataOutputStream);
             }
           } else {
             dataOutputStream.writeInt(1);
-            TestUtils.getTestMeasurementSchema( 0).serializeTo(dataOutputStream);
+            MeasurementMeta meta = new MeasurementMeta();
+            meta.setSchema(TestUtils.getTestMeasurementSchema(0));
+            meta.serializeTo(dataOutputStream);
           }
         }
         PullSchemaResp resp = new PullSchemaResp();
@@ -605,7 +609,7 @@ public class MetaGroupMemberTest extends MemberTest {
     testMetaMember.sendSnapshot(request, new GenericHandler(TestUtils.getNode(0), reference));
 
     // 6. check whether the snapshot applied or not
-    Map<String, Long> localStorageGroupTTL = MManager.getInstance().getStorageGroupsTTL();
+    Map<String, Long> localStorageGroupTTL = IoTDB.getMManager().getStorageGroupsTTL();
     assertNotNull(localStorageGroupTTL);
     assertEquals(storageGroupTTL, localStorageGroupTTL);
 
@@ -642,7 +646,7 @@ public class MetaGroupMemberTest extends MemberTest {
           new SetStorageGroupPlan(new Path(TestUtils.getTestSg(i)));
       TSStatus status = testMetaMember.executeNonQuery(setStorageGroupPlan);
       assertEquals(TSStatusCode.SUCCESS_STATUS.getStatusCode(), status.code);
-      assertTrue(MManager.getInstance().isPathExist(TestUtils.getTestSg(i)));
+      assertTrue(IoTDB.getMManager().isPathExist(TestUtils.getTestSg(i)));
 
       // process a partitioned plan
       TimeseriesSchema schema = TestUtils.getTestTimeSeriesSchema(i, 0);
@@ -652,7 +656,7 @@ public class MetaGroupMemberTest extends MemberTest {
           Collections.emptyMap(), Collections.emptyMap(), null);
       status = testMetaMember.executeNonQuery(createTimeSeriesPlan);
       assertEquals(TSStatusCode.SUCCESS_STATUS.getStatusCode(), status.code);
-      assertTrue(MManager.getInstance().isPathExist(TestUtils.getTestSeries(i, 0)));
+      assertTrue(IoTDB.getMManager().isPathExist(TestUtils.getTestSeries(i, 0)));
     }
   }
 
@@ -660,11 +664,11 @@ public class MetaGroupMemberTest extends MemberTest {
   public void testPullTimeseriesSchema() throws MetadataException {
     System.out.println("Start testPullTimeseriesSchema()");
     for (int i = 0; i < 10; i++) {
-      List<MeasurementSchema> schemas =
-          testMetaMember.pullTimeSeriesSchemas(Collections.singletonList(TestUtils.getTestSg(i)));
+      List<MeasurementMeta> schemas =
+          testMetaMember.pullTimeSeriesSchemas(Collections.singletonList(TestUtils.getTestSg(i)), null);
       assertEquals(20, schemas.size());
       for (int j = 0; j < 10; j++) {
-        assertEquals(TestUtils.getTestMeasurementSchema(j), schemas.get(j));
+        assertEquals(TestUtils.getTestMeasurementSchema(j), schemas.get(j).getSchema());
       }
     }
   }
@@ -683,7 +687,7 @@ public class MetaGroupMemberTest extends MemberTest {
             .getSeriesTypesByString(Collections.singletonList(TestUtils.getTestSeries(9, 0)),
                 null));
     // a non-existent series
-    MManager.getInstance().setStorageGroup(TestUtils.getTestSg(10));
+    IoTDB.getMManager().setStorageGroup(TestUtils.getTestSg(10));
     try {
       testMetaMember.getSeriesTypesByString(Collections.singletonList(TestUtils.getTestSeries(10
           , 100)), null);
@@ -714,7 +718,7 @@ public class MetaGroupMemberTest extends MemberTest {
       insertPlan.setDeviceId(TestUtils.getTestSg(i));
       MeasurementSchema schema = TestUtils.getTestMeasurementSchema(0);
       try {
-        MManager.getInstance().createTimeseries(schema.getMeasurementId(), schema.getType()
+        IoTDB.getMManager().createTimeseries(schema.getMeasurementId(), schema.getType()
             , schema.getEncodingType(), schema.getCompressor(), schema.getProps());
       } catch (MetadataException e) {
         // ignore
@@ -759,7 +763,7 @@ public class MetaGroupMemberTest extends MemberTest {
       insertPlan.setDeviceId(TestUtils.getTestSg(i));
       MeasurementSchema schema = TestUtils.getTestMeasurementSchema(0);
       try {
-        MManager.getInstance().createTimeseries(schema.getMeasurementId(), schema.getType()
+        IoTDB.getMManager().createTimeseries(schema.getMeasurementId(), schema.getType()
             , schema.getEncodingType(), schema.getCompressor(), schema.getProps());
       } catch (MetadataException e) {
         // ignore

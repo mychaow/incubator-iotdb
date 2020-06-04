@@ -95,7 +95,6 @@ public class MManager {
   private boolean writeToLog;
   // device -> DeviceMNode
   private RandomDeleteCache<String, MNode> mNodeCache;
-  private LRUCache<String, MeasurementSchema> mRemoteSchemaCache;
 
   // tag key -> tag value -> LeafMNode
   private Map<String, Map<String, Set<LeafMNode>>> tagIndex = new HashMap<>();
@@ -115,7 +114,7 @@ public class MManager {
     private static final MManager INSTANCE = new MManager();
   }
 
-  private MManager() {
+  protected MManager() {
     config = IoTDBDescriptor.getInstance().getConfig();
     String schemaDir = config.getSchemaDir();
     File schemaFolder = SystemFileFactory.INSTANCE.getFile(schemaDir);
@@ -144,19 +143,6 @@ public class MManager {
         } finally {
           lock.readLock().unlock();
         }
-      }
-    };
-
-    int remoteCacheSize = config.getmRemoteSchemaCacheSize();
-    mRemoteSchemaCache = new LRUCache<String, MeasurementSchema>(remoteCacheSize) {
-      @Override
-      protected MeasurementSchema loadObjectByKey(String key) throws IOException {
-        throw new IOException();
-      }
-
-      @Override
-      public synchronized void removeItem(String key) {
-        cache.keySet().removeIf(s -> s.startsWith(key));
       }
     };
   }
@@ -397,9 +383,6 @@ public class MManager {
   public Pair<Set<String>, String> deleteTimeseries(String prefixPath) throws MetadataException {
     lock.writeLock().lock();
 
-    // clear cached schema
-    mRemoteSchemaCache.removeItem(prefixPath);
-
     if (isStorageGroup(prefixPath)) {
 
       if (config.isEnableParameterAdapter()) {
@@ -541,9 +524,6 @@ public class MManager {
     lock.writeLock().lock();
     try {
       for (String storageGroup : storageGroups) {
-        // clear cached schema
-        mRemoteSchemaCache.removeItem(storageGroup);
-
         // try to delete storage group
         List<LeafMNode> leafMNodes = mtree.deleteStorageGroup(storageGroup);
         for (LeafMNode leafMNode : leafMNodes) {
@@ -601,13 +581,6 @@ public class MManager {
     try {
       if (path.equals(SQLConstant.RESERVED_TIME)) {
         return TSDataType.INT64;
-      }
-
-      try {
-        MeasurementSchema schema = mRemoteSchemaCache.get(path);
-        return schema.getType();
-      } catch (IOException e) {
-        // ignore
       }
 
       return mtree.getSchema(path).getType();
@@ -870,25 +843,8 @@ public class MManager {
       MNode leaf = node.getChild(measurement);
       if (leaf != null) {
         return ((LeafMNode) leaf).getSchema();
-      } else {
-        return mRemoteSchemaCache
-            .get(device + IoTDBConstant.PATH_SEPARATOR + measurement);
       }
-    } catch (PathNotExistException e) {
-      try {
-        MeasurementSchema measurementSchema = mRemoteSchemaCache
-            .get(device + IoTDBConstant.PATH_SEPARATOR + measurement);
-        if (measurementSchema != null) {
-          return measurementSchema;
-        } else {
-          throw e;
-        }
-      } catch (IOException ex) {
-        throw e;
-      }
-    } catch (IOException e) {
-      // cache miss
-      throw new PathNotExistException(device + IoTDBConstant.PATH_SEPARATOR + measurement);
+      return null;
     } finally {
       lock.readLock().unlock();
     }
@@ -1425,7 +1381,7 @@ public class MManager {
   /**
    * Check whether the given path contains a storage group
    */
-  boolean checkStorageGroupByPath(String path) {
+  public boolean checkStorageGroupByPath(String path) {
     lock.readLock().lock();
     try {
       return mtree.checkStorageGroupByPath(path);
@@ -1440,7 +1396,7 @@ public class MManager {
    * @return List of String represented all storage group names
    * @apiNote :for cluster
    */
-  List<String> getStorageGroupByPath(String path) throws MetadataException {
+  public List<String> getStorageGroupByPath(String path) throws MetadataException {
     lock.readLock().lock();
     try {
       return mtree.getStorageGroupByPath(path);
@@ -1467,15 +1423,18 @@ public class MManager {
   }
 
   public void collectMeasurementSchema(MNode startingNode,
-      Collection<MeasurementSchema> timeseriesSchemas) {
+      Collection<MeasurementMeta> timeseriesMetas) {
     Deque<MNode> nodeDeque = new ArrayDeque<>();
     nodeDeque.addLast(startingNode);
     while (!nodeDeque.isEmpty()) {
       MNode node = nodeDeque.removeFirst();
       if (node instanceof LeafMNode) {
         MeasurementSchema nodeSchema = ((LeafMNode) node).getSchema();
-        timeseriesSchemas.add(new MeasurementSchema(node.getName(), nodeSchema.getType(),
-            nodeSchema.getEncodingType(), nodeSchema.getCompressor()));
+        MeasurementMeta meta = new MeasurementMeta();
+        meta.setSchema(new MeasurementSchema(node.getName(), nodeSchema.getType(),
+          nodeSchema.getEncodingType(), nodeSchema.getCompressor()));
+        meta.setAlias(((LeafMNode)node).getAlias());
+        timeseriesMetas.add(meta);
       } else if (!node.getChildren().isEmpty()) {
         nodeDeque.addAll(node.getChildren().values());
       }
@@ -1488,7 +1447,7 @@ public class MManager {
    * @param startingPath
    * @param measurementSchemas
    */
-  public void collectSeries(String startingPath, List<MeasurementSchema> measurementSchemas) {
+  public void collectSeries(String startingPath, List<MeasurementMeta> measurementSchemas) {
     MNode mNode;
     try {
       mNode = getNodeByPath(startingPath);
@@ -1531,19 +1490,6 @@ public class MManager {
     }
   }
 
-  public void cacheSchema(String path, MeasurementSchema schema) {
-    // check schema is in local
-    try {
-      ShowTimeSeriesPlan tempPlan = new ShowTimeSeriesPlan(new Path(path), false, null, null, 0, 0);
-      List<String[]> schemas = mtree.getAllMeasurementSchema(tempPlan);
-      if (schemas.isEmpty()) {
-        mRemoteSchemaCache.put(path, schema);
-      }
-    } catch (MetadataException e) {
-      mRemoteSchemaCache.put(path, schema);
-    }
-  }
-
   /**
    * StorageGroupFilter filters unsatisfied storage groups in metadata queries to speed up and
    * deduplicate.
@@ -1552,5 +1498,9 @@ public class MManager {
   public
   interface StorageGroupFilter {
     boolean satisfy(String storageGroup);
+  }
+
+  public void cacheMeta(String path, MeasurementMeta meta) {
+    //do nothing
   }
 }

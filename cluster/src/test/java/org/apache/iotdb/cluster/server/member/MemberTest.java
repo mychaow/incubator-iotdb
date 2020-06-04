@@ -50,6 +50,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.executor.PlanExecutor;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.SchemaUtils;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Path;
@@ -103,7 +104,7 @@ public class MemberTest {
 
     for (int i = 0; i < 10; i++) {
       try {
-        MManager.getInstance().setStorageGroup(TestUtils.getTestSg(i));
+        IoTDB.getMManager().setStorageGroup(TestUtils.getTestSg(i));
         for (int j = 0; j < 20; j++) {
           SchemaUtils.registerTimeseries(TestUtils.getTestTimeSeriesSchema(i, j));
         }
@@ -185,7 +186,7 @@ public class MemberTest {
 
       @Override
       public List<String> getMatchedPaths(String pathPattern) throws MetadataException {
-        return MManager.getInstance().getAllTimeseriesName(pathPattern);
+        return IoTDB.getMManager().getAllTimeseriesName(pathPattern);
       }
 
       @Override

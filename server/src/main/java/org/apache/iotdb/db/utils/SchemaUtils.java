@@ -26,6 +26,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.metadata.PathAlreadyExistException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.constant.SQLConstant;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -50,7 +51,7 @@ public class SchemaUtils {
       TSDataType dataType = schema.getType();
       TSEncoding encoding = schema.getEncodingType();
       CompressionType compressionType = schema.getCompressor();
-      MManager.getInstance().createTimeseries(path, dataType, encoding,
+      IoTDB.getMManager().createTimeseries(path, dataType, encoding,
           compressionType, Collections.emptyMap());
     } catch (PathAlreadyExistException ignored) {
       // ignore added timeseries
@@ -65,7 +66,7 @@ public class SchemaUtils {
       throws MetadataException {
     List<TSDataType> dataTypes = new ArrayList<>();
     for (Path path : paths) {
-      dataTypes.add(MManager.getInstance().getSeriesType(path.getFullPath()));
+      dataTypes.add(IoTDB.getMManager().getSeriesType(path.getFullPath()));
     }
     return dataTypes;
   }
@@ -83,7 +84,7 @@ public class SchemaUtils {
     }
     List<TSDataType> dataTypes = new ArrayList<>();
     for (String path : paths) {
-      dataTypes.add(MManager.getInstance().getSeriesType(path));
+      dataTypes.add(IoTDB.getMManager().getSeriesType(path));
     }
     return dataTypes;
   }
@@ -96,7 +97,7 @@ public class SchemaUtils {
     }
     List<TSDataType> dataTypes = new ArrayList<>();
     for (Path path : paths) {
-      dataTypes.add(MManager.getInstance().getSeriesType(path.getFullPath()));
+      dataTypes.add(IoTDB.getMManager().getSeriesType(path.getFullPath()));
     }
     return dataTypes;
   }
@@ -109,7 +110,7 @@ public class SchemaUtils {
       if (dataType != null) {
         tsDataTypes.add(dataType);
       } else {
-        tsDataTypes.add(MManager.getInstance().getSeriesType(paths.get(i).getFullPath()));
+        tsDataTypes.add(IoTDB.getMManager().getSeriesType(paths.get(i).getFullPath()));
       }
     }
     return tsDataTypes;

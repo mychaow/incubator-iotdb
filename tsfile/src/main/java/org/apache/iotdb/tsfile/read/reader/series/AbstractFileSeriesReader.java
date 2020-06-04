@@ -31,7 +31,7 @@ import org.apache.iotdb.tsfile.read.reader.chunk.ChunkReader;
 /**
  * Series reader is used to query one series of one tsfile.
  */
-public abstract class AbstractFileSeriesReader implements IBatchReader {
+public abstract class AbstractFileSeriesReader implements IBatchReader<T> {
 
   protected IChunkLoader chunkLoader;
   protected List<ChunkMetadata> chunkMetadataList;

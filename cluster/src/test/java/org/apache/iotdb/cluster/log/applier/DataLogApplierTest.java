@@ -43,6 +43,7 @@ import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.qp.physical.crud.DeletePlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.tsfile.exception.filter.QueryFilterOptimizationException;
@@ -65,13 +66,15 @@ public class DataLogApplierTest extends IoTDBTest {
     }
 
     @Override
-    public List<MeasurementSchema> pullTimeSeriesSchemas(List<String> prefixPaths)
+    public List<MeasurementMeta> pullTimeSeriesSchemas(List<String> prefixPaths, InsertPlan plan)
         throws StorageGroupNotSetException {
-      List<MeasurementSchema> ret = new ArrayList<>();
+      List<MeasurementMeta> ret = new ArrayList<>();
       for (String prefixPath : prefixPaths) {
         if (prefixPath.startsWith(TestUtils.getTestSg(4))) {
           for (int i = 0; i < 10; i++) {
-            ret.add(TestUtils.getTestMeasurementSchema(i));
+            MeasurementMeta meta = new MeasurementMeta();
+            meta.setSchema(TestUtils.getTestMeasurementSchema(i));
+            ret.add(meta);
           }
         } else if (!prefixPath.startsWith(TestUtils.getTestSg(5))) {
           throw new StorageGroupNotSetException(prefixPath);

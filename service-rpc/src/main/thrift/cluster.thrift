@@ -159,6 +159,7 @@ struct ExecutNonQueryReq {
 struct PullSchemaRequest {
   1: required list<string> prefixPaths
   2: optional Node header
+  3: optional list<int> pathDataTypes  // possible dataType for Series which does not create in advance
 }
 
 struct PullSchemaResp {

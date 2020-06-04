@@ -40,6 +40,7 @@ import org.apache.iotdb.cluster.config.ClusterDescriptor;
 import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.utils.PartitionUtils;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.SerializeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +74,7 @@ public class SlotPartitionTable implements PartitionTable {
   private List<PartitionGroup> localGroups;
 
   private Node thisNode;
-  MManager mManager = MManager.getInstance();
+  MManager mManager = IoTDB.getMManager();
 
   private List<PartitionGroup> globalGroups;
 

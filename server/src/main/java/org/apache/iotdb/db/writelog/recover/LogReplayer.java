@@ -38,6 +38,7 @@ import org.apache.iotdb.db.qp.physical.crud.InsertTabletPlan;
 import org.apache.iotdb.db.qp.physical.crud.DeletePlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.qp.physical.crud.UpdatePlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.writelog.io.ILogReader;
 import org.apache.iotdb.db.writelog.manager.MultiFileLogNodeManager;
 import org.apache.iotdb.db.writelog.node.WriteLogNode;
@@ -147,7 +148,7 @@ public class LogReplayer {
     }
     MeasurementSchema[] schemas;
     try {
-      schemas = MManager.getInstance().getSchemas(insertTabletPlan.getDeviceId(), insertTabletPlan
+      schemas = IoTDB.getMManager().getSchemas(insertTabletPlan.getDeviceId(), insertTabletPlan
           .getMeasurements());
     } catch (MetadataException e) {
       throw new QueryProcessException(e);
@@ -175,7 +176,7 @@ public class LogReplayer {
     }
     try {
       MeasurementSchema[] schemas =
-          MManager.getInstance().getSchemas(insertPlan.getDeviceId(), insertPlan.getMeasurements());
+          IoTDB.getMManager().getSchemas(insertPlan.getDeviceId(), insertPlan.getMeasurements());
       insertPlan.setSchemasAndTransferType(schemas);
       recoverMemTable.insert(insertPlan);
     } catch (Exception e) {

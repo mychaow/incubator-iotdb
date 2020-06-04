@@ -34,6 +34,7 @@ import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -72,9 +73,9 @@ public class DeletionFileNodeTest {
   public void setup() throws MetadataException {
     EnvironmentUtils.envSetUp();
 
-    MManager.getInstance().setStorageGroup(processorName);
+    IoTDB.getMManager().setStorageGroup(processorName);
     for (int i = 0; i < 10; i++) {
-      MManager.getInstance().createTimeseries(processorName + "." + measurements[i], dataType,
+      IoTDB.getMManager().createTimeseries(processorName + "." + measurements[i], dataType,
           encoding, TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
     }
   }

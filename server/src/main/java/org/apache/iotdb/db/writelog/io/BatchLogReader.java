@@ -32,31 +32,31 @@ import org.slf4j.LoggerFactory;
  * BatchedLogReader reads logs from a binary batch of log in the format of ByteBuffer. The
  * ByteBuffer must be readable.
  */
-public class BatchLogReader implements ILogReader{
+public class BatchLogReader<T> implements ILogReader<T> {
 
   private static Logger logger = LoggerFactory.getLogger(BatchLogReader.class);
 
-  private Iterator<PhysicalPlan> planIterator;
+  private Iterator<T> logIterator;
 
   private boolean fileCorrupted = false;
 
   BatchLogReader(ByteBuffer buffer) {
-    List<PhysicalPlan> logs = readLogs(buffer);
-    this.planIterator = logs.iterator();
+    List<T> logs = readLogs(buffer);
+    this.logIterator = logs.iterator();
   }
 
-  private List<PhysicalPlan> readLogs(ByteBuffer buffer) {
-    List<PhysicalPlan> plans = new ArrayList<>();
+  private List<T> readLogs(ByteBuffer buffer) {
+    List<T> logs = new ArrayList<>();
     while (buffer.position() != buffer.limit()) {
       try {
-        plans.add(PhysicalPlan.Factory.create(buffer));
+        logs.add(Factory.create(buffer));
       } catch (IOException e) {
         logger.error("Cannot deserialize PhysicalPlans from ByteBuffer, ignore remaining logs", e);
         fileCorrupted = true;
         break;
       }
     }
-    return plans;
+    return logs;
   }
 
 
@@ -67,12 +67,12 @@ public class BatchLogReader implements ILogReader{
 
   @Override
   public boolean hasNext() {
-    return planIterator.hasNext();
+    return logIterator.hasNext();
   }
 
   @Override
-  public PhysicalPlan next() {
-    return planIterator.next();
+  public T next() {
+    return logIterator.next();
   }
 
   public boolean isFileCorrupted() {

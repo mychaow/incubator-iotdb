@@ -37,6 +37,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.query.PathException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.query.control.FileReaderManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.exception.write.WriteProcessException;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
@@ -61,7 +62,7 @@ public class SeriesReaderTestUtil {
   public static void setUp(List<MeasurementSchema> measurementSchemas, List<String> deviceIds,
       List<TsFileResource> seqResources, List<TsFileResource> unseqResources)
       throws MetadataException, PathException, IOException, WriteProcessException {
-    MManager.getInstance().init();
+    IoTDB.getMManager().init();
     prepareSeries(measurementSchemas, deviceIds);
     prepareFiles(seqResources, unseqResources, measurementSchemas, deviceIds);
   }
@@ -72,7 +73,7 @@ public class SeriesReaderTestUtil {
     seqResources.clear();
     unseqResources.clear();
     ChunkMetadataCache.getInstance().clear();
-    MManager.getInstance().clear();
+    IoTDB.getMManager().clear();
     EnvironmentUtils.cleanAllDir();
     MergeManager.getINSTANCE().stop();
   }
@@ -158,10 +159,10 @@ public class SeriesReaderTestUtil {
     for (int i = 0; i < deviceNum; i++) {
       deviceIds.add(SERIES_READER_TEST_SG + PATH_SEPARATOR + "device" + i);
     }
-    MManager.getInstance().setStorageGroup(SERIES_READER_TEST_SG);
+    IoTDB.getMManager().setStorageGroup(SERIES_READER_TEST_SG);
     for (String device : deviceIds) {
       for (MeasurementSchema measurementSchema : measurementSchemas) {
-        MManager.getInstance().createTimeseries(
+        IoTDB.getMManager().createTimeseries(
             device + PATH_SEPARATOR + measurementSchema.getMeasurementId(), measurementSchema
                 .getType(), measurementSchema.getEncodingType(), measurementSchema.getCompressor(),
             Collections.emptyMap());

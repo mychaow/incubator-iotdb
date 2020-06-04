@@ -19,22 +19,21 @@
 package org.apache.iotdb.db.writelog.node;
 
 import java.io.IOException;
-import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.writelog.io.ILogReader;
 
 /**
  * WriteLogNode is the minimum unit of managing WALs.
  */
-public interface WriteLogNode {
+public interface WriteLogNode<T> {
 
   /**
    * Write a wal for a PhysicalPlan. First, the PhysicalPlan will be conveyed to byte[].
    * Then the byte[] will be put into a cache. When the cache is full, the logs in the cache will be
    * synced to disk.
    *
-   * @param plan - a PhysicalPlan
+   * @param log - a PhysicalPlan
    */
-  void write(PhysicalPlan plan) throws IOException;
+  void write(T log) throws IOException;
 
   /**
    * Sync and close streams.

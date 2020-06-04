@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.rpc.thrift.PullSchemaResp;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
+import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
@@ -36,34 +38,35 @@ public class PullTimeseriesSchemaHandler implements AsyncMethodCallback<PullSche
 
   private Node owner;
   private List<String> prefixPaths;
-  private AtomicReference<List<MeasurementSchema>> timeseriesSchemas;
+  private AtomicReference<List<MeasurementMeta>> timeseriesMetas;
 
   public PullTimeseriesSchemaHandler(Node owner, List<String> prefixPaths,
-      AtomicReference<List<MeasurementSchema>> timeseriesSchemas) {
+      AtomicReference<List<MeasurementMeta>> timeseriesMetas) {
     this.owner = owner;
     this.prefixPaths = prefixPaths;
-    this.timeseriesSchemas = timeseriesSchemas;
+    this.timeseriesMetas = timeseriesMetas;
   }
 
   @Override
   public void onComplete(PullSchemaResp response) {
     ByteBuffer buffer = response.schemaBytes;
     int size = buffer.getInt();
-    List<MeasurementSchema> schemas = new ArrayList<>(size);
+    List<MeasurementMeta> metas = new ArrayList<>(size);
     for (int i = 0; i < size; i++) {
-      schemas.add(MeasurementSchema.deserializeFrom(buffer));
+      metas.add(MeasurementMeta.deserializeFrom(buffer));
     }
-    synchronized (timeseriesSchemas) {
-      timeseriesSchemas.set(schemas);
-      timeseriesSchemas.notifyAll();
+
+    synchronized (timeseriesMetas) {
+      timeseriesMetas.set(metas);
+      timeseriesMetas.notifyAll();
     }
   }
 
   @Override
   public void onError(Exception exception) {
     logger.error("Cannot pull time series schema of {} from {}", prefixPaths, owner, exception);
-    synchronized (timeseriesSchemas) {
-      timeseriesSchemas.notifyAll();
+    synchronized (timeseriesMetas) {
+      timeseriesMetas.notifyAll();
     }
   }
 }

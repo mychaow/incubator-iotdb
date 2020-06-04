@@ -42,7 +42,7 @@ public class TsFileTimeGenerator extends TimeGenerator {
   }
 
   @Override
-  protected IBatchReader generateNewBatchReader(SingleSeriesExpression expression)
+  protected IBatchReader<T> generateNewBatchReader(SingleSeriesExpression expression)
       throws IOException {
     List<ChunkMetadata> chunkMetadataList = metadataQuerier
         .getChunkMetaDataList(expression.getSeriesPath());

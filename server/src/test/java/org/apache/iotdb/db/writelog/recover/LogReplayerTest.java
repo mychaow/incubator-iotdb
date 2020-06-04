@@ -42,6 +42,7 @@ import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.DeletePlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.db.writelog.manager.MultiFileLogNodeManager;
 import org.apache.iotdb.db.writelog.node.WriteLogNode;
@@ -88,11 +89,11 @@ public class LogReplayerTest {
     TsFileResource tsFileResource = new TsFileResource(tsFile);
     IMemTable memTable = new PrimitiveMemTable();
 
-    MManager.getInstance().setStorageGroup("root.sg");
+    IoTDB.getMManager().setStorageGroup("root.sg");
     try {
       for (int i = 0; i < 5; i++) {
         for (int j = 0; j < 5; j++) {
-          MManager.getInstance()
+          IoTDB.getMManager()
               .createTimeseries("root.sg.device" + i + ".sensor" + j, TSDataType.INT64,
                   TSEncoding.PLAIN, TSFileDescriptor.getInstance().getConfig().getCompressor(),
                   Collections.emptyMap());

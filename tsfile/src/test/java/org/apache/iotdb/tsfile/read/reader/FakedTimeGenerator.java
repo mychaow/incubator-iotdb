@@ -26,8 +26,6 @@ import org.apache.iotdb.tsfile.read.expression.impl.SingleSeriesExpression;
 import org.apache.iotdb.tsfile.read.filter.TimeFilter;
 import org.apache.iotdb.tsfile.read.filter.factory.FilterFactory;
 import org.apache.iotdb.tsfile.read.query.timegenerator.TimeGenerator;
-import org.apache.iotdb.tsfile.read.query.timegenerator.node.AndNode;
-import org.apache.iotdb.tsfile.read.query.timegenerator.node.LeafNode;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -52,7 +50,7 @@ public class FakedTimeGenerator extends TimeGenerator {
   }
 
   @Override
-  protected IBatchReader generateNewBatchReader(SingleSeriesExpression expression) {
+  protected IBatchReader<T> generateNewBatchReader(SingleSeriesExpression expression) {
     return new FakedMultiBatchReader(10, 10, expression.getFilter());
   }
 

@@ -54,7 +54,7 @@ public class ClusterQueryManagerTest {
 
   @Test
   public void testRegisterReader() {
-    IBatchReader reader = new IBatchReader() {
+    IBatchReader<T> reader = new IBatchReader<T>() {
       @Override
       public boolean hasNextBatch() {
         return false;
@@ -157,7 +157,7 @@ public class ClusterQueryManagerTest {
   public void testEndQuery() throws StorageEngineException {
     RemoteQueryContext queryContext = queryManager.getQueryContext(TestUtils.getNode(0), 1);
     for (int i = 0; i < 10; i++) {
-      IBatchReader reader = new IBatchReader() {
+      IBatchReader<T> reader = new IBatchReader<T>() {
         @Override
         public boolean hasNextBatch() {
           return false;

@@ -21,11 +21,11 @@ package org.apache.iotdb.db.query.timegenerator;
 import java.io.IOException;
 import org.apache.iotdb.db.engine.querycontext.QueryDataSource;
 import org.apache.iotdb.db.exception.StorageEngineException;
-import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.RawDataQueryPlan;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
 import org.apache.iotdb.db.query.reader.series.SeriesRawDataBatchReader;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.expression.IExpression;
@@ -62,14 +62,14 @@ public class ServerTimeGenerator extends TimeGenerator {
   }
 
   @Override
-  protected IBatchReader generateNewBatchReader(SingleSeriesExpression expression)
+  protected IBatchReader<T> generateNewBatchReader(SingleSeriesExpression expression)
       throws IOException {
     Filter filter = expression.getFilter();
     Path path = expression.getSeriesPath();
     TSDataType dataType;
     QueryDataSource queryDataSource;
     try {
-      dataType = MManager.getInstance().getSeriesType(path.getFullPath());
+      dataType = IoTDB.getMManager().getSeriesType(path.getFullPath());
       queryDataSource = QueryResourceManager.getInstance().getQueryDataSource(path, context, filter);
       // update filter by TTL
       filter = queryDataSource.updateFilterUsingTTL(filter);

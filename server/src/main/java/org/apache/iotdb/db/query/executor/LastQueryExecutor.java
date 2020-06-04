@@ -35,6 +35,7 @@ import org.apache.iotdb.db.qp.physical.crud.LastQueryPlan;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
 import org.apache.iotdb.db.query.dataset.ListDataSet;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.FileLoaderUtils;
 import org.apache.iotdb.tsfile.file.metadata.ChunkMetadata;
 import org.apache.iotdb.tsfile.file.metadata.TimeseriesMetadata;
@@ -115,7 +116,7 @@ public class LastQueryExecutor {
     // Retrieve last value from MNode
     LeafMNode node = null;
     try {
-      node = (LeafMNode) MManager.getInstance().getNodeByPath(seriesPath.toString());
+      node = (LeafMNode) IoTDB.getMManager().getNodeByPath(seriesPath.toString());
     } catch (PathNotExistException e) {
       // TODO use last cache for remote series
     } catch (MetadataException e) {

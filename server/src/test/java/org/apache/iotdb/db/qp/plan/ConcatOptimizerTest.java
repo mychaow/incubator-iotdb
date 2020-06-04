@@ -29,6 +29,7 @@ import org.apache.iotdb.db.qp.Planner;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.qp.physical.crud.RawDataQueryPlan;
 import org.apache.iotdb.db.qp.strategy.optimizer.ConcatPathOptimizer;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -52,25 +53,25 @@ public class ConcatOptimizerTest {
   @Before
   public void before() throws MetadataException {
     processor = new Planner();
-    MManager.getInstance().init();
-    MManager.getInstance().setStorageGroup("root.laptop");
-    MManager.getInstance().createTimeseries("root.laptop.d1.s1", TSDataType.INT64, TSEncoding.PLAIN,
+    IoTDB.getMManager().init();
+    IoTDB.getMManager().setStorageGroup("root.laptop");
+    IoTDB.getMManager().createTimeseries("root.laptop.d1.s1", TSDataType.INT64, TSEncoding.PLAIN,
         CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance().createTimeseries("root.laptop.d1.s2", TSDataType.INT64, TSEncoding.PLAIN,
+    IoTDB.getMManager().createTimeseries("root.laptop.d1.s2", TSDataType.INT64, TSEncoding.PLAIN,
         CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance().createTimeseries("root.laptop.d2.s1", TSDataType.INT64, TSEncoding.PLAIN,
+    IoTDB.getMManager().createTimeseries("root.laptop.d2.s1", TSDataType.INT64, TSEncoding.PLAIN,
         CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance().createTimeseries("root.laptop.d2.s2", TSDataType.INT64, TSEncoding.PLAIN,
+    IoTDB.getMManager().createTimeseries("root.laptop.d2.s2", TSDataType.INT64, TSEncoding.PLAIN,
         CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance().createTimeseries("root.laptop.d3.s1", TSDataType.INT64, TSEncoding.PLAIN,
+    IoTDB.getMManager().createTimeseries("root.laptop.d3.s1", TSDataType.INT64, TSEncoding.PLAIN,
         CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance().createTimeseries("root.laptop.d3.s2", TSDataType.INT64, TSEncoding.PLAIN,
+    IoTDB.getMManager().createTimeseries("root.laptop.d3.s2", TSDataType.INT64, TSEncoding.PLAIN,
         CompressionType.UNCOMPRESSED, null);
   }
 
   @After
   public void after() throws IOException {
-    MManager.getInstance().clear();
+    IoTDB.getMManager().clear();
     EnvironmentUtils.cleanAllDir();
   }
 

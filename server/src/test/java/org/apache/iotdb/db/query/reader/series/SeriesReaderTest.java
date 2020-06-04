@@ -74,7 +74,7 @@ public class SeriesReaderTest {
       SeriesReader seriesReader = new SeriesReader(
           new Path(SERIES_READER_TEST_SG + PATH_SEPARATOR + "device0", "sensor0"), allSensors,
           TSDataType.INT32, new QueryContext(), seqResources, unseqResources, null, null);
-      IBatchReader batchReader = new SeriesRawDataBatchReader(seriesReader);
+      IBatchReader<T> batchReader = new SeriesRawDataBatchReader(seriesReader);
       int count = 0;
       while (batchReader.hasNextBatch()) {
         BatchData batchData = batchReader.nextBatch();

@@ -21,6 +21,7 @@ package org.apache.iotdb.db.writelog.io;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 
@@ -28,9 +29,9 @@ import org.apache.iotdb.db.qp.physical.PhysicalPlan;
  * MultiFileLogReader constructs SingleFileLogReaders for a list of WAL files, and retrieve logs
  * from the files one-by-one.
  */
-public class MultiFileLogReader implements ILogReader {
+public class MultiFileLogReader<T> implements ILogReader<T> {
 
-  private SingleFileLogReader currentReader;
+  private AbstractSingleFileLogReader<T> currentReader;
   private File[] files;
   private int fileIdx = 0;
 
@@ -51,7 +52,12 @@ public class MultiFileLogReader implements ILogReader {
       return false;
     }
     if (currentReader == null) {
-      currentReader = new SingleFileLogReader(files[fileIdx++]);
+      currentReader = new AbstractSingleFileLogReader<T>() {
+        @Override
+        protected ILogReader<T> newLogReader(ByteBuffer buf) {
+          return null;
+        }
+      }SingleFileLogReader(files[fileIdx++]);
     }
     if (currentReader.hasNext()) {
       return true;
@@ -66,10 +72,15 @@ public class MultiFileLogReader implements ILogReader {
   }
 
   @Override
-  public PhysicalPlan next() throws FileNotFoundException {
+  public T next() throws FileNotFoundException {
     if (!hasNext()) {
       throw new NoSuchElementException();
     }
     return currentReader.next();
+  }
+
+  @Override
+  public boolean isFileCorrupted() {
+    return false;
   }
 }

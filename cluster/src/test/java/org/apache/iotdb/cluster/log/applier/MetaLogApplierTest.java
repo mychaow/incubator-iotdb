@@ -39,6 +39,7 @@ import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.sys.CreateTimeSeriesPlan;
 import org.apache.iotdb.db.qp.physical.sys.SetStorageGroupPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -87,14 +88,14 @@ public class MetaLogApplierTest extends IoTDBTest {
     physicalPlanLog.setPlan(setStorageGroupPlan);
 
     applier.apply(physicalPlanLog);
-    assertTrue(MManager.getInstance().isPathExist("root.applyMeta"));
+    assertTrue(IoTDB.getMManager().isPathExist("root.applyMeta"));
 
     CreateTimeSeriesPlan createTimeSeriesPlan = new CreateTimeSeriesPlan(new Path("root.applyMeta"
         + ".s1"), TSDataType.DOUBLE, TSEncoding.RLE, CompressionType.SNAPPY,
         Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), null);
     physicalPlanLog.setPlan(createTimeSeriesPlan);
     applier.apply(physicalPlanLog);
-    assertTrue(MManager.getInstance().isPathExist("root.applyMeta.s1"));
-    assertEquals(TSDataType.DOUBLE, MManager.getInstance().getSeriesType("root.applyMeta.s1"));
+    assertTrue(IoTDB.getMManager().isPathExist("root.applyMeta.s1"));
+    assertEquals(TSDataType.DOUBLE, IoTDB.getMManager().getSeriesType("root.applyMeta.s1"));
   }
 }

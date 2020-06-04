@@ -41,6 +41,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.exception.StorageGroupProcessorException;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.db.writelog.manager.MultiFileLogNodeManager;
 import org.apache.iotdb.db.writelog.node.WriteLogNode;
@@ -95,10 +96,10 @@ public class SeqTsFileRecoverTest {
     tsF = SystemFileFactory.INSTANCE.getFile(logNodePrefix, "1-1-1.tsfile");
     tsF.getParentFile().mkdirs();
 
-    MManager.getInstance().setStorageGroup("root.sg");
+    IoTDB.getMManager().setStorageGroup("root.sg");
     for (int i = 0; i < 10; i++) {
       for (int j = 0; j < 10; j++) {
-        MManager.getInstance()
+        IoTDB.getMManager()
             .createTimeseries("root.sg.device" + i + ".sensor" + j, TSDataType.INT64,
                 TSEncoding.PLAIN, TSFileDescriptor.getInstance().getConfig().getCompressor(),
                 Collections.emptyMap());

@@ -38,6 +38,7 @@ import org.apache.iotdb.db.exception.StartupException;
 import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.sync.conf.SyncConstant;
 import org.apache.iotdb.db.sync.conf.SyncSenderConfig;
 import org.apache.iotdb.db.sync.conf.SyncSenderDescriptor;
@@ -83,7 +84,7 @@ public class SyncSenderLogAnalyzerTest {
     Map<String, Map<Long, Set<File>>> allFileList = new HashMap<>();
 
     for (int i = 0; i < 3; i++) {
-      MManager.getInstance().setStorageGroup(getSgName(i));
+      IoTDB.getMManager().setStorageGroup(getSgName(i));
     }
     Random r = new Random(0);
     for (int i = 0; i < 3; i++) {

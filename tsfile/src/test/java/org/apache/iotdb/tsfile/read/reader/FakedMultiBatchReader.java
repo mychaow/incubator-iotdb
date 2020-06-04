@@ -23,7 +23,7 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.BatchData;
 import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 
-public class FakedMultiBatchReader implements IBatchReader {
+public class FakedMultiBatchReader implements IBatchReader<T> {
 
   private long time = 0;
   private int batchSize;

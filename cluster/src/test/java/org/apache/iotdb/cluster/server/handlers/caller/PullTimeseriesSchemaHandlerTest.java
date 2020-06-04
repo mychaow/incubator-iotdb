@@ -33,6 +33,7 @@ import org.apache.iotdb.cluster.common.TestException;
 import org.apache.iotdb.cluster.common.TestUtils;
 import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.rpc.thrift.PullSchemaResp;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class PullTimeseriesSchemaHandlerTest {
   public void testComplete() throws InterruptedException {
     Node owner = TestUtils.getNode(1);
     String prefixPath = "root";
-    AtomicReference<List<MeasurementSchema>> result = new AtomicReference<>();
+    AtomicReference<List<MeasurementMeta>> result = new AtomicReference<>();
     List<MeasurementSchema> measurementSchemas = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       measurementSchemas.add(TestUtils.getTestMeasurementSchema(i));
@@ -58,7 +59,9 @@ public class PullTimeseriesSchemaHandlerTest {
         try {
           dataOutputStream.writeInt(measurementSchemas.size());
           for (MeasurementSchema measurementSchema : measurementSchemas) {
-            measurementSchema.serializeTo(dataOutputStream);
+            MeasurementMeta meta = new MeasurementMeta();
+            meta.setSchema(measurementSchema);
+            meta.serializeTo(dataOutputStream);
           }
         } catch (IOException e) {
           // ignore
@@ -69,14 +72,17 @@ public class PullTimeseriesSchemaHandlerTest {
       }).start();
       result.wait();
     }
-    assertEquals(measurementSchemas, result.get());
+
+    for (int i = 0; i < measurementSchemas.size(); i++) {
+      assertEquals(measurementSchemas.get(i), result.get().get(i).getSchema());
+    }
   }
 
   @Test
   public void testError() throws InterruptedException {
     Node owner = TestUtils.getNode(1);
     String prefixPath = "root";
-    AtomicReference<List<MeasurementSchema>> result = new AtomicReference<>();
+    AtomicReference<List<MeasurementMeta>> result = new AtomicReference<>();
 
     PullTimeseriesSchemaHandler handler = new PullTimeseriesSchemaHandler(owner,
         Collections.singletonList(prefixPath), result);

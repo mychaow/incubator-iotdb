@@ -29,6 +29,7 @@ import org.apache.iotdb.db.qp.Planner;
 import org.apache.iotdb.db.qp.executor.IPlanExecutor;
 import org.apache.iotdb.db.qp.executor.PlanExecutor;
 import org.apache.iotdb.db.qp.physical.crud.QueryPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.read.query.dataset.QueryDataSet;
 import org.junit.After;
@@ -81,7 +82,7 @@ public class EngineDataSetWithValueFilterTest {
       "insert into root.test.d0(timestamp,s1) values(3000,'1309')"};
 
   static {
-    MManager.getInstance().init();
+    IoTDB.getMManager().init();
   }
 
   public EngineDataSetWithValueFilterTest() throws QueryProcessException {

@@ -101,19 +101,11 @@ public class LeafMNode extends MNode {
 
   public synchronized void updateCachedLast(
       TimeValuePair timeValuePair, boolean highPriorityUpdate, Long latestFlushedTime) {
-    if (timeValuePair == null || timeValuePair.getValue() == null) return;
+    TimeValuePair ret = LeafMNode.updateLastValue(cachedLastValuePair, timeValuePair,
+      highPriorityUpdate, latestFlushedTime);
 
-    if (cachedLastValuePair == null) {
-      // If no cached last, (1) a last query (2) an unseq insertion or (3) a seq insertion will update cache.
-      if (!highPriorityUpdate || latestFlushedTime <= timeValuePair.getTimestamp()) {
-        cachedLastValuePair =
-            new TimeValuePair(timeValuePair.getTimestamp(), timeValuePair.getValue());
-      }
-    } else if (timeValuePair.getTimestamp() > cachedLastValuePair.getTimestamp()
-        || (timeValuePair.getTimestamp() == cachedLastValuePair.getTimestamp()
-            && highPriorityUpdate)) {
-      cachedLastValuePair.setTimestamp(timeValuePair.getTimestamp());
-      cachedLastValuePair.setValue(timeValuePair.getValue());
+    if (ret != null) {
+      cachedLastValuePair = ret;
     }
   }
 
@@ -139,5 +131,25 @@ public class LeafMNode extends MNode {
 
   public void setAlias(String alias) {
     this.alias = alias;
+  }
+
+  public static TimeValuePair updateLastValue(TimeValuePair oldPair, TimeValuePair timeValuePair,
+                                          boolean highPriorityUpdate, Long latestFlushedTime) {
+    if (timeValuePair == null || timeValuePair.getValue() == null) return null;
+
+    TimeValuePair retPair = null;
+    if (oldPair == null) {
+      // If no cached last, (1) a last query (2) an unseq insertion or (3) a seq insertion will update cache.
+      if (!highPriorityUpdate || latestFlushedTime <= timeValuePair.getTimestamp()) {
+        retPair =
+          new TimeValuePair(timeValuePair.getTimestamp(), timeValuePair.getValue());
+      }
+    } else if (timeValuePair.getTimestamp() > oldPair.getTimestamp()
+      || (timeValuePair.getTimestamp() == oldPair.getTimestamp()
+      && highPriorityUpdate)) {
+      retPair =
+        new TimeValuePair(timeValuePair.getTimestamp(), timeValuePair.getValue());
+    }
+    return retPair;
   }
 }

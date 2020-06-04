@@ -31,6 +31,7 @@ import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.Planner;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -45,25 +46,25 @@ public class SerializationTest {
 
   @Before
   public void before() throws MetadataException {
-    MManager.getInstance().init();
-    MManager.getInstance().setStorageGroup("root.vehicle");
-    MManager.getInstance()
+    IoTDB.getMManager().init();
+    IoTDB.getMManager().setStorageGroup("root.vehicle");
+    IoTDB.getMManager()
         .createTimeseries("root.vehicle.d1.s1", TSDataType.FLOAT, TSEncoding.PLAIN,
             CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.vehicle.d2.s1", TSDataType.FLOAT, TSEncoding.PLAIN,
             CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.vehicle.d3.s1", TSDataType.FLOAT, TSEncoding.PLAIN,
             CompressionType.UNCOMPRESSED, null);
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.vehicle.d4.s1", TSDataType.FLOAT, TSEncoding.PLAIN,
             CompressionType.UNCOMPRESSED, null);
   }
 
   @After
   public void clean() throws IOException {
-    MManager.getInstance().clear();
+    IoTDB.getMManager().clear();
     EnvironmentUtils.cleanAllDir();
   }
 

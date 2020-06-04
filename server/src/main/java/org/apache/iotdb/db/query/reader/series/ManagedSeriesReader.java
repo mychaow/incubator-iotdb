@@ -25,7 +25,7 @@ import org.apache.iotdb.tsfile.read.reader.IBatchReader;
  * provides additional interfaces to make it able to be run in a thread pool concurrently within a
  * query.
  */
-public interface ManagedSeriesReader extends IBatchReader {
+public interface ManagedSeriesReader extends IBatchReader<T> {
 
   boolean isManagedByQueryManager();
 

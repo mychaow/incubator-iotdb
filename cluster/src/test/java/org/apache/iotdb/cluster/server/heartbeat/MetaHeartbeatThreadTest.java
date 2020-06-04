@@ -45,6 +45,7 @@ import org.apache.iotdb.cluster.server.member.MetaGroupMember;
 import org.apache.iotdb.cluster.server.member.RaftMember;
 import org.apache.iotdb.cluster.utils.PartitionUtils;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.junit.Before;
 
@@ -131,7 +132,7 @@ public class MetaHeartbeatThreadTest extends HeartbeatThreadTest {
 
     @Override
     public MManager getMManager() {
-      return MManager.getInstance();
+      return IoTDB.getMManager();
     }
 
     @Override

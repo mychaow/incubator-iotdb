@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.query.PathException;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
@@ -63,7 +64,7 @@ public class MManagerBasicTest {
   @Test
   public void testAddPathAndExist() {
 
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
     assertTrue(manager.isPathExist("root"));
 
     assertFalse(manager.isPathExist("root.laptop"));
@@ -202,7 +203,7 @@ public class MManagerBasicTest {
   @Test
   public void testSetStorageGroupAndExist() {
 
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
 
     try {
       assertFalse(manager.isStorageGroup("root"));
@@ -228,7 +229,7 @@ public class MManagerBasicTest {
   @Test
   public void testGetAllFileNamesByPath() {
 
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
     try {
       manager.setStorageGroup("root.laptop.d1");
       manager.setStorageGroup("root.laptop.d2");
@@ -253,7 +254,7 @@ public class MManagerBasicTest {
 
   @Test
   public void testCheckStorageExistOfPath() {
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
 
     try {
       assertTrue(manager.getAllTimeseriesName("root").isEmpty());
@@ -281,7 +282,7 @@ public class MManagerBasicTest {
 
   @Test
   public void testMaximalSeriesNumberAmongStorageGroup() throws MetadataException, PathException {
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
     assertEquals(0, manager.getMaximalSeriesNumberAmongStorageGroups());
     manager.setStorageGroup("root.laptop");
     assertEquals(0, manager.getMaximalSeriesNumberAmongStorageGroups());
@@ -335,7 +336,7 @@ public class MManagerBasicTest {
 
   @Test
   public void testGetDevicesWithGivenPrefix() {
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
 
     try {
       manager.setStorageGroup("root.laptop");
@@ -362,7 +363,7 @@ public class MManagerBasicTest {
 
   @Test
   public void testGetChildNodePathInNextLevel() {
-    MManager manager = MManager.getInstance();
+    MManager manager = IoTDB.getMManager();
     String[] res = new String[]{
         "[root.laptop, root.vehicle]",
         "[root.laptop.b1, root.laptop.b2]",

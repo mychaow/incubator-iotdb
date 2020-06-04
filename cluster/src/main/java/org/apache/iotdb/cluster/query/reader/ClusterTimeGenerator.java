@@ -54,7 +54,7 @@ public class ClusterTimeGenerator extends ServerTimeGenerator {
   }
 
   @Override
-  protected IBatchReader generateNewBatchReader(SingleSeriesExpression expression)
+  protected IBatchReader<T> generateNewBatchReader(SingleSeriesExpression expression)
       throws IOException {
     Filter filter = expression.getFilter();
     Path path = expression.getSeriesPath();

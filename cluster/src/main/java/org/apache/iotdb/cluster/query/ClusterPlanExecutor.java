@@ -31,13 +31,16 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.iotdb.cluster.client.async.DataClient;
 import org.apache.iotdb.cluster.client.sync.SyncClientAdaptor;
+import org.apache.iotdb.cluster.config.ClusterConstant;
 import org.apache.iotdb.cluster.config.ClusterDescriptor;
+import org.apache.iotdb.cluster.meta.CMManager;
 import org.apache.iotdb.cluster.partition.PartitionGroup;
 import org.apache.iotdb.cluster.query.dataset.ClusterAlignByDeviceDataSet;
 import org.apache.iotdb.cluster.query.filter.SlotSgFilter;
 import org.apache.iotdb.cluster.rpc.thrift.Node;
 import org.apache.iotdb.cluster.server.member.DataGroupMember;
 import org.apache.iotdb.cluster.server.member.MetaGroupMember;
+import org.apache.iotdb.cluster.utils.PartitionUtils;
 import org.apache.iotdb.db.conf.IoTDBConstant;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
 import org.apache.iotdb.db.engine.StorageEngine;
@@ -46,6 +49,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.metadata.PathNotExistException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.metadata.mnode.InternalMNode;
 import org.apache.iotdb.db.metadata.mnode.MNode;
 import org.apache.iotdb.db.metadata.mnode.StorageGroupMNode;
@@ -62,6 +66,7 @@ import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.dataset.AlignByDeviceDataSet;
 import org.apache.iotdb.db.query.dataset.ShowTimeSeriesResult;
 import org.apache.iotdb.db.query.executor.IQueryRouter;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.exception.filter.QueryFilterOptimizationException;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.read.query.dataset.QueryDataSet;
@@ -155,7 +160,7 @@ public class ClusterPlanExecutor extends PlanExecutor {
     DataGroupMember localDataMember = metaGroupMember.getLocalDataMember(header);
     localDataMember.syncLeader();
     try {
-      return MManager.getInstance().getNodesList(schemaPattern, level,
+      return IoTDB.getMManager().getNodesList(schemaPattern, level,
           new SlotSgFilter(metaGroupMember.getPartitionTable().getNodeSlots(header)));
     } catch (MetadataException e) {
       logger.error("Cannot not get node list of {}@{} from {} locally", schemaPattern, level, group);
@@ -224,7 +229,7 @@ public class ClusterPlanExecutor extends PlanExecutor {
     localDataMember.syncLeader();
     try {
       return new ArrayList<>(
-          MManager.getInstance().getChildNodePathInNextLevel(path));
+          IoTDB.getMManager().getChildNodePathInNextLevel(path));
     } catch (MetadataException e) {
       logger
           .error("Cannot not get next children of {} from {} locally", path, group);
@@ -296,9 +301,9 @@ public class ClusterPlanExecutor extends PlanExecutor {
     localDataMember.syncLeader();
     try {
       if (plan.getKey() != null && plan.getValue() != null) {
-        resultSet.addAll(MManager.getInstance().getAllTimeseriesSchema(plan));
+        resultSet.addAll(IoTDB.getMManager().getAllTimeseriesSchema(plan));
       } else {
-        resultSet.addAll(MManager.getInstance().showTimeseries(plan));
+        resultSet.addAll(IoTDB.getMManager().showTimeseries(plan));
       }
     } catch (MetadataException e) {
       logger
@@ -343,48 +348,40 @@ public class ClusterPlanExecutor extends PlanExecutor {
     String[] measurementList = insertPlan.getMeasurements();
     String deviceId = insertPlan.getDeviceId();
 
-    MNode node = null;
-    boolean allSeriesExists = true;
-    try {
-      node = MManager.getInstance().getDeviceNodeWithAutoCreateAndReadLock(deviceId);
-    } catch (PathNotExistException e) {
-      allSeriesExists = false;
-    }
-
-    try {
-      if (node != null) {
-        for (String measurement : measurementList) {
-          if (!node.hasChild(measurement)) {
-            allSeriesExists = false;
-            break;
-          }
-        }
-      }
-    } finally {
-      if (node != null) {
-        ((InternalMNode) node).readUnlock();
-      }
-    }
-
-    if (allSeriesExists) {
+    if (!isSeriesOwnBySelf(IoTDB.getMManager().getStorageGroupName(deviceId))) {
+      // if this series is owned by self, we should create it if config autoCreate
       return super.getSeriesSchemas(insertPlan);
     }
 
-    // some schemas does not exist locally, fetch them from the remote side
+    // not owned by self, we should only cache it
+    MeasurementSchema[] schemas = new MeasurementSchema[measurementList.length];
     List<String> schemasToPull = new ArrayList<>();
+
+    boolean allTimeSeriesExists = true;
     for (String s : measurementList) {
       schemasToPull.add(deviceId + IoTDBConstant.PATH_SEPARATOR + s);
+      if (IoTDB.getMManager().getSeriesSchema(deviceId, s) == null) {
+        allTimeSeriesExists = false;
+      }
     }
-    List<MeasurementSchema> schemas = metaGroupMember.pullTimeSeriesSchemas(schemasToPull);
-    for (MeasurementSchema schema : schemas) {
-      MManager.getInstance()
-          .cacheSchema(deviceId + IoTDBConstant.PATH_SEPARATOR + schema.getMeasurementId(), schema);
+
+    if (!allTimeSeriesExists) {
+      // some schemas does not exist locally, fetch them from the remote side
+      List<MeasurementMeta> metas = metaGroupMember.pullTimeSeriesSchemas(schemasToPull, insertPlan);
+      for (MeasurementMeta meta : metas) {
+        IoTDB.getMManager()
+          .cacheMeta(deviceId + IoTDBConstant.PATH_SEPARATOR + meta.getSchema().getMeasurementId(), meta);
+      }
+      logger.debug("Pulled {}/{} schemas from remote", metas.size(), measurementList.length);
     }
-    logger.debug("Pulled {}/{} schemas from remote", schemas.size(), measurementList.length);
+
+    for (int i = 0; i < measurementList.length; i++) {
+      schemas[i] = IoTDB.getMManager().getSeriesSchema(deviceId, measurementList[i]);
+    }
 
     // we have pulled schemas as much as we can, those not pulled will depend on whether
     // auto-creation is enabled
-    return super.getSeriesSchemas(insertPlan);
+    return schemas;
   }
 
   @Override
@@ -432,5 +429,9 @@ public class ClusterPlanExecutor extends PlanExecutor {
     }
   }
 
-
+  private boolean isSeriesOwnBySelf(String storageGroupName) {
+    int slotId = PartitionUtils.calculateStorageGroupSlotByTime(storageGroupName, 0, ClusterConstant.SLOT_NUM);
+    PartitionGroup group = metaGroupMember.getPartitionTable().route(slotId);
+    return group.contains(metaGroupMember.getThisNode());
+  }
 }

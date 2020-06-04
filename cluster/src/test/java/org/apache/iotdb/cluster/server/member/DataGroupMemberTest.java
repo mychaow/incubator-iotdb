@@ -84,6 +84,7 @@ import org.apache.iotdb.db.exception.WriteProcessException;
 import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.qp.executor.PlanExecutor;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.qp.physical.sys.CreateTimeSeriesPlan;
@@ -91,6 +92,7 @@ import org.apache.iotdb.db.query.aggregation.AggregateResult;
 import org.apache.iotdb.db.query.aggregation.AggregationType;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.SerializeUtils;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.BatchData;
@@ -489,7 +491,7 @@ public class DataGroupMemberTest extends MemberTest {
             timeseriesSchema.getCompressor(), timeseriesSchema.getProps(),
             Collections.emptyMap(), Collections.emptyMap(), null);
     assertEquals(200, dataGroupMember.executeNonQuery(createTimeSeriesPlan).code);
-    assertTrue(MManager.getInstance().isPathExist(timeseriesSchema.getFullPath()));
+    assertTrue(IoTDB.getMManager().isPathExist(timeseriesSchema.getFullPath()));
   }
 
   @Test
@@ -504,7 +506,7 @@ public class DataGroupMemberTest extends MemberTest {
             timeseriesSchema.getCompressor(), timeseriesSchema.getProps(),
             Collections.emptyMap(), Collections.emptyMap(), null);
     assertEquals(200, dataGroupMember.executeNonQuery(createTimeSeriesPlan).code);
-    assertTrue(MManager.getInstance().isPathExist(timeseriesSchema.getFullPath()));
+    assertTrue(IoTDB.getMManager().isPathExist(timeseriesSchema.getFullPath()));
   }
 
   @Test
@@ -522,7 +524,7 @@ public class DataGroupMemberTest extends MemberTest {
 
       PullSchemaRequest request = new PullSchemaRequest();
       request.setPrefixPaths(Collections.singletonList(TestUtils.getTestSg(0)));
-      AtomicReference<List<MeasurementSchema>> result = new AtomicReference<>();
+      AtomicReference<List<MeasurementMeta>> result = new AtomicReference<>();
       PullTimeseriesSchemaHandler handler = new PullTimeseriesSchemaHandler(TestUtils.getNode(1),
           request.getPrefixPaths(), result);
       dataGroupMember.pullTimeSeriesSchema(request, handler);

@@ -80,6 +80,7 @@ import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertTabletPlan;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryFileManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.service.UpgradeSevice;
 import org.apache.iotdb.db.utils.CopyOnReadLinkedList;
 import org.apache.iotdb.db.writelog.recover.TsFileRecoverPerformer;
@@ -778,7 +779,7 @@ public class StorageGroupProcessor {
       throws WriteProcessException {
     MNode node = null;
     try {
-      MManager manager = MManager.getInstance();
+      MManager manager = IoTDB.getMManager();
       node = manager.getDeviceNodeWithAutoCreateAndReadLock(plan.getDeviceId());
       String[] measurementList = plan.getMeasurements();
       for (int i = 0; i < measurementList.length; i++) {
@@ -829,7 +830,7 @@ public class StorageGroupProcessor {
   public void tryToUpdateInsertLastCache(InsertPlan plan, Long latestFlushedTime) {
     MNode node = null;
     try {
-      MManager manager = MManager.getInstance();
+      MManager manager = IoTDB.getMManager();
       node = manager.getDeviceNodeWithAutoCreateAndReadLock(plan.getDeviceId());
       String[] measurementList = plan.getMeasurements();
       for (int i = 0; i < measurementList.length; i++) {
@@ -1239,7 +1240,7 @@ public class StorageGroupProcessor {
       String deviceId, String measurementId, QueryContext context, Filter timeFilter, boolean isSeq)
       throws MetadataException {
 
-    MeasurementSchema schema = MManager.getInstance().getSeriesSchema(deviceId, measurementId);
+    MeasurementSchema schema = IoTDB.getMManager().getSeriesSchema(deviceId, measurementId);
 
     List<TsFileResource> tsfileResourcesForQuery = new ArrayList<>();
     long timeLowerBound = dataTTL != Long.MAX_VALUE ? System.currentTimeMillis() - dataTTL : Long

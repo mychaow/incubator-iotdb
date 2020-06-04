@@ -365,11 +365,11 @@ public class TSServiceImpl implements TSIService.Iface, ServerContext {
   }
 
   private String getMetadataInString() {
-    return MManager.getInstance().getMetadataInString();
+    return IoTDB.getMManager().getMetadataInString();
   }
 
   protected List<String> getPaths(String path) throws MetadataException {
-    return MManager.getInstance().getAllTimeseriesName(path);
+    return IoTDB.getMManager().getAllTimeseriesName(path);
   }
 
   @Override

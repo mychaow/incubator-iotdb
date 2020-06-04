@@ -18,7 +18,6 @@
  */
 package org.apache.iotdb.tsfile.read.query.timegenerator;
 
-import org.apache.iotdb.tsfile.read.common.TimeColumn;
 import org.apache.iotdb.tsfile.read.query.timegenerator.node.AndNode;
 import org.apache.iotdb.tsfile.read.query.timegenerator.node.LeafNode;
 import org.apache.iotdb.tsfile.read.query.timegenerator.node.Node;
@@ -26,7 +25,6 @@ import org.apache.iotdb.tsfile.read.query.timegenerator.node.NodeType;
 import org.apache.iotdb.tsfile.read.query.timegenerator.node.OrNode;
 import org.apache.iotdb.tsfile.read.reader.FakedBatchReader;
 import org.apache.iotdb.tsfile.read.reader.IBatchReader;
-import org.apache.iotdb.tsfile.read.reader.series.AbstractFileSeriesReader;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -45,7 +43,7 @@ public class NodeTest {
   public void testLeafNode() throws IOException {
     int index = 0;
     long[] timestamps = new long[]{1, 2, 3, 4, 5, 6, 7};
-    IBatchReader batchReader = new FakedBatchReader(timestamps);
+    IBatchReader<T> batchReader = new FakedBatchReader(timestamps);
     Node leafNode = new LeafNode(batchReader);
     while (leafNode.hasNext()) {
       Assert.assertEquals(timestamps[index++], leafNode.next());

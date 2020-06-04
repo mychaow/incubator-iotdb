@@ -32,7 +32,6 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -96,7 +95,7 @@ import org.apache.iotdb.db.exception.LoadFileException;
 import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
-import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.qp.physical.sys.ShowTimeSeriesPlan;
 import org.apache.iotdb.db.query.aggregation.AggregateResult;
@@ -114,6 +113,7 @@ import org.apache.iotdb.db.query.reader.series.SeriesRawDataBatchReader;
 import org.apache.iotdb.db.query.reader.series.SeriesRawDataPointReader;
 import org.apache.iotdb.db.query.reader.series.SeriesReader;
 import org.apache.iotdb.db.query.reader.series.SeriesReaderByTimestamp;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.FilePathUtils;
 import org.apache.iotdb.db.utils.SchemaUtils;
 import org.apache.iotdb.db.utils.SerializeUtils;
@@ -128,7 +128,6 @@ import org.apache.iotdb.tsfile.read.filter.basic.Filter;
 import org.apache.iotdb.tsfile.read.filter.factory.FilterFactory;
 import org.apache.iotdb.tsfile.read.reader.IBatchReader;
 import org.apache.iotdb.tsfile.read.reader.IPointReader;
-import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.apache.iotdb.tsfile.write.schema.TimeseriesSchema;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
@@ -1027,9 +1026,25 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
     // collect local timeseries schemas and send to the requester
     // the measurements in them are the full paths.
     List<String> prefixPaths = request.getPrefixPaths();
-    List<MeasurementSchema> timeseriesSchemas = new ArrayList<>();
-    for (String prefixPath : prefixPaths) {
-      MManager.getInstance().collectSeries(prefixPath, timeseriesSchemas);
+    List<Integer> dataTypes = request.getPathDataTypes();
+    List<MeasurementMeta> timeseriesMetas = new ArrayList<>();
+    for (int i = 0; i < prefixPaths.size(); i++) {
+      if (IoTDBDescriptor.getInstance().getConfig().isAutoCreateSchemaEnabled() && (dataTypes.size() > 0)) {
+        // only insert plan will add pathSchemas field
+        TSDataType type = TSDataType.TEXT;
+        try {
+           type = IoTDB.getMManager().getSeriesType(prefixPaths.get(i));
+        } catch (MetadataException e) {
+          // not exist, so we should try to create it
+          try {
+            type = TSDataType.deserialize(dataTypes.get(i).shortValue());
+            metaGroupMember.getLocalExecutor().internalCreateTimeseries(prefixPaths.get(i), type);
+          } catch (MetadataException | QueryProcessException ex) {
+            logger.error("failed to create timeseries {} for {}", prefixPaths.get(i), ex.getMessage());
+          }
+        }
+      }
+      IoTDB.getMManager().collectSeries(prefixPaths.get(i), timeseriesMetas);
     }
 
     PullSchemaResp resp = new PullSchemaResp();
@@ -1037,9 +1052,9 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
     DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
     try {
-      dataOutputStream.writeInt(timeseriesSchemas.size());
-      for (MeasurementSchema timeseriesSchema : timeseriesSchemas) {
-        timeseriesSchema.serializeTo(dataOutputStream);
+      dataOutputStream.writeInt(timeseriesMetas.size());
+      for (MeasurementMeta timeseriesMeta : timeseriesMetas) {
+        timeseriesMeta.serializeTo(dataOutputStream);
       }
     } catch (IOException ignored) {
       // unreachable for we are using a ByteArrayOutputStream
@@ -1088,9 +1103,9 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
    * @return an IBatchReader or null if there is no satisfying data
    * @throws StorageEngineException
    */
-  IBatchReader getSeriesBatchReader(Path path, Set<String> allSensors, TSDataType dataType,
-      Filter timeFilter,
-      Filter valueFilter, QueryContext context)
+  IBatchReader<T> getSeriesBatchReader(Path path, Set<String> allSensors, TSDataType dataType,
+                                       Filter timeFilter,
+                                       Filter valueFilter, QueryContext context)
       throws StorageEngineException, QueryProcessException {
     // pull the newest data
     if (syncLeader()) {
@@ -1122,16 +1137,16 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
       Filter timeFilter,
       Filter valueFilter, QueryContext context)
       throws StorageEngineException, QueryProcessException {
-    if (!MManager.getInstance().isPathExist(path.getFullPath())) {
-      try {
-        List<MeasurementSchema> schemas = metaGroupMember
-            .pullTimeSeriesSchemas(Collections.singletonList(path.getFullPath()));
-        for (MeasurementSchema schema : schemas) {
-          MManager.getInstance().cacheSchema(path.getFullPath(), schema);
-        }
-      } catch (MetadataException e) {
-        throw new QueryProcessException(e);
-      }
+    if (!IoTDB.getMManager().isPathExist(path.getFullPath())) {
+//      try {
+//        List<MeasurementMeta> metas = metaGroupMember
+//            .pullTimeSeriesSchemas(Collections.singletonList(path.getFullPath()), null);
+//        for (MeasurementMeta meta : metas) {
+//          IoTDB.getMManager().cacheSchema(path.getFullPath(), schema);
+//        }
+//      } catch (MetadataException e) {
+//        throw new QueryProcessException(e);
+//      }
     }
     List<Integer> nodeSlots = metaGroupMember.getPartitionTable().getNodeSlots(getHeader());
     QueryDataSource queryDataSource =
@@ -1203,7 +1218,7 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
     logger.debug("{}: local queryId for {}#{} is {}", name, request.getQueryId(),
         request.getPath(), queryContext.getQueryId());
     try {
-      IBatchReader batchReader = getSeriesBatchReader(path, deviceMeasurements, dataType,
+      IBatchReader<T> batchReader = getSeriesBatchReader(path, deviceMeasurements, dataType,
           timeFilter,
           valueFilter, queryContext);
 
@@ -1338,7 +1353,7 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
   @Override
   public void fetchSingleSeries(Node header, long readerId,
       AsyncMethodCallback<ByteBuffer> resultHandler) {
-    IBatchReader reader = getQueryManager().getReader(readerId);
+    IBatchReader<T> reader = getQueryManager().getReader(readerId);
     if (reader == null) {
       resultHandler.onError(new ReaderNotFoundException(readerId));
       return;
@@ -1375,7 +1390,7 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
     try {
       List<String> ret = new ArrayList<>();
       for (String path : paths) {
-        ret.addAll(MManager.getInstance().getAllTimeseriesName(path));
+        ret.addAll(IoTDB.getMManager().getAllTimeseriesName(path));
       }
       resultHandler.onComplete(ret);
     } catch (MetadataException e) {
@@ -1396,7 +1411,7 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
     try {
       Set<String> results = new HashSet<>();
       for (String path : paths) {
-        results.addAll(MManager.getInstance().getDevices(path));
+        results.addAll(IoTDB.getMManager().getDevices(path));
       }
       resultHandler.onComplete(results);
     } catch (MetadataException e) {
@@ -1481,7 +1496,7 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
       return;
     }
     try {
-      resultHandler.onComplete(MManager.getInstance().getNodesList(path, nodeLevel));
+      resultHandler.onComplete(IoTDB.getMManager().getNodesList(path, nodeLevel));
     } catch (MetadataException e) {
       resultHandler.onError(e);
     }
@@ -1495,7 +1510,7 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
       return;
     }
     try {
-      resultHandler.onComplete(MManager.getInstance().getChildNodePathInNextLevel(path));
+      resultHandler.onComplete(IoTDB.getMManager().getChildNodePathInNextLevel(path));
     } catch (MetadataException e) {
       resultHandler.onError(e);
     }
@@ -1512,9 +1527,9 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
       ShowTimeSeriesPlan plan = (ShowTimeSeriesPlan) PhysicalPlan.Factory.create(planBuffer);
       List<ShowTimeSeriesResult> allTimeseriesSchema;
       if (plan.getKey() != null && plan.getValue() != null) {
-        allTimeseriesSchema = MManager.getInstance().getAllTimeseriesSchema(plan);
+        allTimeseriesSchema = IoTDB.getMManager().getAllTimeseriesSchema(plan);
       } else {
-        allTimeseriesSchema = MManager.getInstance().showTimeseries(plan);
+        allTimeseriesSchema = IoTDB.getMManager().showTimeseries(plan);
       }
 
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -1603,16 +1618,16 @@ public class DataGroupMember extends RaftMember implements TSDataService.AsyncIf
       throw new LeaderUnknownException(getAllNodes());
 
     }
-    if (!MManager.getInstance().isPathExist(path)) {
-      try {
-        List<MeasurementSchema> schemas = metaGroupMember
-            .pullTimeSeriesSchemas(Collections.singletonList(path));
-        for (MeasurementSchema schema : schemas) {
-          MManager.getInstance().cacheSchema(path, schema);
-        }
-      } catch (MetadataException e) {
-        throw new QueryProcessException(e);
-      }
+    if (!IoTDB.getMManager().isPathExist(path)) {
+//      try {
+//        List<MeasurementSchema> schemas = metaGroupMember
+//            .pullTimeSeriesSchemas(Collections.singletonList(path), null);
+//        for (MeasurementSchema schema : schemas) {
+//          IoTDB.getMManager().cacheSchema(path, schema);
+//        }
+//      } catch (MetadataException e) {
+//        throw new QueryProcessException(e);
+//      }
     }
     List<AggregateResult> results = new ArrayList<>();
     for (String aggregation : aggregations) {

@@ -61,6 +61,7 @@ import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryFileManager;
 import org.apache.iotdb.db.service.IService;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.service.ServiceType;
 import org.apache.iotdb.db.utils.FilePathUtils;
 import org.apache.iotdb.db.utils.UpgradeUtils;
@@ -142,7 +143,7 @@ public class StorageEngine implements IService {
     /*
      * recover all storage group processors.
      */
-    List<StorageGroupMNode> sgNodes = MManager.getInstance().getAllStorageGroupNodes();
+    List<StorageGroupMNode> sgNodes = IoTDB.getMManager().getAllStorageGroupNodes();
     List<Future> futures = new ArrayList<>();
     for (StorageGroupMNode storageGroup : sgNodes) {
       futures.add(recoveryThreadPool.submit((Callable<Void>) () -> {
@@ -232,7 +233,7 @@ public class StorageEngine implements IService {
   public StorageGroupProcessor getProcessor(String path) throws StorageEngineException {
     String storageGroupName;
     try {
-      storageGroupName = MManager.getInstance().getStorageGroupName(path);
+      storageGroupName = IoTDB.getMManager().getStorageGroupName(path);
       StorageGroupProcessor processor;
       processor = processorMap.get(storageGroupName);
       if (processor == null) {
@@ -243,7 +244,7 @@ public class StorageEngine implements IService {
             logger.info("construct a processor instance, the storage group is {}, Thread is {}",
                 storageGroupName, Thread.currentThread().getId());
             processor = new StorageGroupProcessor(systemDir, storageGroupName, fileFlushPolicy);
-            StorageGroupMNode storageGroup = MManager.getInstance()
+            StorageGroupMNode storageGroup = IoTDB.getMManager()
                 .getStorageGroupNode(storageGroupName);
             processor.setDataTTL(storageGroup.getDataTTL());
             processorMap.put(storageGroupName, processor);
@@ -469,7 +470,7 @@ public class StorageEngine implements IService {
   public synchronized boolean deleteAll() {
     logger.info("Start deleting all storage groups' timeseries");
     syncCloseAllProcessor();
-    for (String storageGroup : MManager.getInstance().getAllStorageGroupNames()) {
+    for (String storageGroup : IoTDB.getMManager().getAllStorageGroupNames()) {
       this.deleteAllDataFilesInOneStorageGroup(storageGroup);
     }
     return true;
@@ -501,7 +502,7 @@ public class StorageEngine implements IService {
       throw new StorageEngineException("Can not get the corresponding storage group.");
     }
     String device = deviceMap.keySet().iterator().next();
-    String storageGroupName = MManager.getInstance().getStorageGroupName(device);
+    String storageGroupName = IoTDB.getMManager().getStorageGroupName(device);
     getProcessor(storageGroupName).loadNewTsFile(newTsFileResource);
   }
 

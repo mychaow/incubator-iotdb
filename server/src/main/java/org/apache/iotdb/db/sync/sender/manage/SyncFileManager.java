@@ -37,6 +37,7 @@ import org.apache.iotdb.db.engine.modification.ModificationFile;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.sync.conf.SyncSenderDescriptor;
 import org.apache.iotdb.tsfile.common.constant.TsFileConstant;
 import org.slf4j.Logger;
@@ -77,7 +78,7 @@ public class SyncFileManager implements ISyncFileManager {
   private Map<String, Map<Long, Set<File>>> toBeSyncedFilesMap;
 
   private SyncFileManager() {
-    MManager.getInstance().init();
+    IoTDB.getMManager().init();
   }
 
   public static SyncFileManager getInstance() {

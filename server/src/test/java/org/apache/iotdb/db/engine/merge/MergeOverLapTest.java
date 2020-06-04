@@ -160,7 +160,7 @@ public class MergeOverLapTest extends MergeTest {
     Path path = new Path(deviceIds[0], measurementSchemas[0].getMeasurementId());
     List<TsFileResource> resources = new ArrayList<>();
     resources.add(seqResources.get(0));
-    IBatchReader tsFilesReader = new SeriesRawDataBatchReader(path, measurementSchemas[0].getType(), context,
+    IBatchReader<T> tsFilesReader = new SeriesRawDataBatchReader(path, measurementSchemas[0].getType(), context,
         resources, new ArrayList<>(), null, null);
     int cnt = 0;
     try {

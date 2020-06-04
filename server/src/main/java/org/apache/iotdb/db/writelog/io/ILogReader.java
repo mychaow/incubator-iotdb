@@ -26,7 +26,7 @@ import org.apache.iotdb.db.qp.physical.PhysicalPlan;
  * ILogReader is an iterator of PhysicalPlan but throws IOException and provide a close() method.
  * This class can be used just like java iterators, but remember to close it after use.
  */
-public interface ILogReader {
+public interface ILogReader<T> {
 
   /**
    * release resources occupied by this object, like file streams.
@@ -45,5 +45,11 @@ public interface ILogReader {
    * @return the next log as a PhysicalPlan
    * @throws java.util.NoSuchElementException when there are no more logs
    */
-  PhysicalPlan next() throws FileNotFoundException;
+  T next() throws FileNotFoundException;
+
+  /**
+   * return whether the file is corrupted
+   * @return
+   */
+  boolean isFileCorrupted();
 }

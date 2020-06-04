@@ -43,6 +43,7 @@ import org.apache.iotdb.db.monitor.StatMonitor;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.FileReaderManager;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.service.MetricsService;
 import org.apache.iotdb.db.writelog.manager.MultiFileLogNodeManager;
 import org.apache.iotdb.jdbc.Config;
@@ -123,7 +124,7 @@ public class EnvironmentUtils {
       ChunkMetadataCache.getInstance().clear();
     }
     // close metadata
-    MManager.getInstance().clear();
+    IoTDB.getMManager().clear();
     MetricsService.getInstance().stop();
     // delete all directory
     cleanAllDir();
@@ -172,7 +173,7 @@ public class EnvironmentUtils {
    */
   public static void envSetUp() throws StartupException, IOException {
     IoTDBDescriptor.getInstance().getConfig().setEnableParameterAdapter(false);
-    MManager.getInstance().init();
+    IoTDB.getMManager().init();
     IoTDBConfigDynamicAdapter.getInstance().setInitialized(true);
 
     createAllDir();

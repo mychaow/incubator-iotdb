@@ -149,6 +149,17 @@ public class IoTDBConfig {
   private int flushWalThreshold = 10000;
 
   /**
+   * Is the remote cache enable
+   */
+  private boolean enableRCache = true;
+
+  /**
+   * The cycle when remote cache log is periodically forced to be written to disk(in milliseconds) If
+   * set this parameter to 0 it means call outputStream.force(true) after every each insert
+   */
+  private int forceRCachePeriodInMs= 10;
+
+  /**
    * this variable set timestamp precision as millisecond, microsecond or nanosecond
    */
   private String timestampPrecision = "ms";
@@ -204,6 +215,11 @@ public class IoTDBConfig {
    * Wal directory.
    */
   private String walFolder = "data" + File.separator + "wal";
+
+  /**
+   * RemoteCache directory.
+   */
+  private String rCacheFolder = "data" + File.separator + "rcache";
 
   /**
    * Maximum MemTable number in MemTable pool.
@@ -1630,4 +1646,29 @@ public class IoTDBConfig {
   public long getStartUpNanosecond() {
     return startUpNanosecond;
   }
+
+  public boolean isEnableRCache() {
+    return enableRCache;
+  }
+
+  public void setEnableRCache(boolean enableRCache) {
+    this.enableRCache = enableRCache;
+  }
+
+  public int getForceRCachePeriodInMs() {
+    return forceRCachePeriodInMs;
+  }
+
+  public void setForceRCachePeriodInMs(int forceRCachePeriodInMs) {
+    this.forceRCachePeriodInMs = forceRCachePeriodInMs;
+  }
+
+  public String getRCacheFolder() {
+    return rCacheFolder;
+  }
+
+  public void setRCacheFolder(String rCacheFolder) {
+    this.rCacheFolder = rCacheFolder;
+  }
+
 }

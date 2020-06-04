@@ -41,6 +41,7 @@ import org.apache.iotdb.db.monitor.MonitorConstants.FileNodeProcessorStatConstan
 import org.apache.iotdb.db.monitor.collector.FileSize;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.service.IService;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.service.ServiceType;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -75,7 +76,7 @@ public class StatMonitor implements IService {
 
   private StatMonitor() {
     initTemporaryStatList();
-    MManager mmanager = MManager.getInstance();
+    MManager mmanager = IoTDB.getMManager();
     statisticMap = new HashMap<>();
     IoTDBConfig config = IoTDBDescriptor.getInstance().getConfig();
     statMonitorDetectFreqSec = config.getStatMonitorDetectFreqSec();
@@ -138,7 +139,7 @@ public class StatMonitor implements IService {
   }
 
   void registerStatStorageGroup() {
-    MManager mManager = MManager.getInstance();
+    MManager mManager = IoTDB.getMManager();
     String prefix = MonitorConstants.STAT_STORAGE_GROUP_PREFIX;
     try {
       if (!mManager.isPathExist(prefix)) {
@@ -155,7 +156,7 @@ public class StatMonitor implements IService {
    * @param hashMap series path and data type pair, for example: [root.stat.file.size.DATA, INT64]
    */
   public synchronized void registerStatStorageGroup(Map<String, String> hashMap) {
-    MManager mManager = MManager.getInstance();
+    MManager mManager = IoTDB.getMManager();
     try {
       for (Map.Entry<String, String> entry : hashMap.entrySet()) {
         if (entry.getValue() == null) {

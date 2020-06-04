@@ -54,6 +54,7 @@ import org.apache.iotdb.cluster.server.handlers.caller.JoinClusterHandler;
 import org.apache.iotdb.cluster.server.handlers.caller.PullSnapshotHandler;
 import org.apache.iotdb.cluster.server.handlers.caller.PullTimeseriesSchemaHandler;
 import org.apache.iotdb.cluster.server.handlers.forwarder.ForwardPlanHandler;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
 import org.apache.iotdb.db.qp.physical.sys.ShowTimeSeriesPlan;
 import org.apache.iotdb.db.utils.SerializeUtils;
@@ -215,15 +216,15 @@ public class SyncClientAdaptor {
     return response.get();
   }
 
-  public static List<MeasurementSchema> pullTimeSeriesSchema(DataClient client,
+  public static List<MeasurementMeta> pullTimeSeriesSchema(DataClient client,
       PullSchemaRequest pullSchemaRequest) throws TException, InterruptedException {
-    AtomicReference<List<MeasurementSchema>> timeseriesSchemas = new AtomicReference<>();
-    synchronized (timeseriesSchemas) {
+    AtomicReference<List<MeasurementMeta>> timeseriesMetas = new AtomicReference<>();
+    synchronized (timeseriesMetas) {
       client.pullTimeSeriesSchema(pullSchemaRequest, new PullTimeseriesSchemaHandler(client.getNode(),
-          pullSchemaRequest.getPrefixPaths(), timeseriesSchemas));
-      timeseriesSchemas.wait(RaftServer.getConnectionTimeoutInMS());
+          pullSchemaRequest.getPrefixPaths(), timeseriesMetas));
+      timeseriesMetas.wait(RaftServer.getConnectionTimeoutInMS());
     }
-    return timeseriesSchemas.get();
+    return timeseriesMetas.get();
   }
 
   public static List<ByteBuffer> getAggrResult(DataClient client, GetAggrResultRequest request)

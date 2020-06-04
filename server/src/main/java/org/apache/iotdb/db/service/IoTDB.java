@@ -50,6 +50,16 @@ public class IoTDB implements IoTDBMBean {
     return IoTDBHolder.INSTANCE;
   }
 
+  private static MManager mManager = MManager.getInstance();
+
+  public static void setMManager(MManager manager) {
+    mManager = manager;
+  }
+
+  public static MManager getMManager() {
+    return mManager;
+  }
+
   public static void main(String[] args) {
     if (args.length > 0) {
       IoTDBDescriptor.getInstance().replaceProps(args);
@@ -131,7 +141,7 @@ public class IoTDB implements IoTDBMBean {
   }
 
   private void initMManager() {
-    MManager.getInstance().init();
+    IoTDB.getMManager().init();
     IoTDBConfigDynamicAdapter.getInstance().setInitialized(true);
     logger.info(
         "After initializing, max memTable num is {}, tsFile threshold is {}, memtableSize is {}",

@@ -29,6 +29,7 @@ import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.DeletePlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.qp.physical.crud.UpdatePlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.db.writelog.node.ExclusiveWriteLogNode;
 import org.apache.iotdb.db.writelog.node.WriteLogNode;
@@ -129,19 +130,19 @@ public class PerformanceTest {
     tempProcessorStore.createNewFile();
 
     try {
-      MManager.getInstance().setStorageGroup("root.logTestDevice");
+      IoTDB.getMManager().setStorageGroup("root.logTestDevice");
     } catch (MetadataException ignored) {
     }
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.logTestDevice.s1", TSDataType.DOUBLE, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.logTestDevice.s2", TSDataType.INT32, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.logTestDevice.s3", TSDataType.TEXT, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
-    MManager.getInstance()
+    IoTDB.getMManager()
         .createTimeseries("root.logTestDevice.s4", TSDataType.BOOLEAN, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
     WriteLogNode logNode = new ExclusiveWriteLogNode("root.logTestDevice");

@@ -34,15 +34,17 @@ public enum ThreadName {
   STAT_MONITOR("StatMonitor-ServerServiceImpl"),
   FLUSH_SERVICE("Flush-ServerServiceImpl"),
   FLUSH_SUB_TASK_SERVICE("Flush-SubTask-ServerServiceImpl"),
-  WAL_DAEMON("IoTDB-MultiFileLogNodeManager-Sync-Thread"),
-  WAL_FORCE_DAEMON("IoTDB-MultiFileLogNodeManager-Force-Thread"),
+  WAL_DAEMON("IoTDB-WalMultiLogNodeManager-Sync-Thread"),
+  WAL_FORCE_DAEMON("IoTDB-WalMultiLogNodeManager-Force-Thread"),
   INDEX_SERVICE("Index-ServerServiceImpl"),
   SYNC_CLIENT("Sync-Client"),
   SYNC_SERVER("Sync-Server"),
   SYNC_MONITOR("Sync-Monitor"),
   LOAD_TSFILE("Load TsFile"),
   TIME_COST_STATSTIC("TIME_COST_STATSTIC"),
-  QUERY_SERVICE("Query-ServerServiceImpl");
+  QUERY_SERVICE("Query-ServerServiceImpl"),
+  RCACHE_DAEMON("IoTDB-CacheMultiLogNodeManager-Sync-Thread"),
+  RCACHE_FORCE_DAEMON("IoTDB-CacheMultiLogNodeManager-Force-Thread"),;
 
   private String name;
 

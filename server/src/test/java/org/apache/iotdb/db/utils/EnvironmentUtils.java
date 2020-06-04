@@ -135,7 +135,7 @@ public class EnvironmentUtils {
       ChunkMetadataCache.getInstance().clear();
     }
     // close metadata
-    MManager.getInstance().clear();
+    IoTDB.getMManager().clear();
 
     // delete all directory
     cleanAllDir();

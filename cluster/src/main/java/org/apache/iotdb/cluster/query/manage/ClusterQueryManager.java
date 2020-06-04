@@ -37,7 +37,7 @@ public class ClusterQueryManager {
 
   private AtomicLong idAtom = new AtomicLong();
   private Map<Node, Map<Long, RemoteQueryContext>> queryContextMap = new ConcurrentHashMap<>();
-  private Map<Long, IBatchReader> seriesReaderMap = new ConcurrentHashMap<>();
+  private Map<Long, IBatchReader<T>> seriesReaderMap = new ConcurrentHashMap<>();
   private Map<Long, IReaderByTimestamp> seriesReaderByTimestampMap = new ConcurrentHashMap<>();
   private Map<Long, IAggregateReader> aggrReaderMap = new ConcurrentHashMap<>();
   private Map<Long, GroupByExecutor> groupByExecutorMap = new ConcurrentHashMap<>();
@@ -50,7 +50,7 @@ public class ClusterQueryManager {
         qId -> new RemoteQueryContext(QueryResourceManager.getInstance().assignQueryId(true)));
   }
 
-  public long registerReader(IBatchReader reader) {
+  public long registerReader(IBatchReader<T> reader) {
     long newReaderId = idAtom.incrementAndGet();
     seriesReaderMap.put(newReaderId, reader);
     return newReaderId;
@@ -87,7 +87,7 @@ public class ClusterQueryManager {
     }
   }
 
-  public IBatchReader getReader(long readerId) {
+  public IBatchReader<T> getReader(long readerId) {
     return seriesReaderMap.get(readerId);
   }
 

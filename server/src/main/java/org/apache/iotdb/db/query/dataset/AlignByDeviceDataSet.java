@@ -38,6 +38,7 @@ import org.apache.iotdb.db.qp.physical.crud.GroupByPlan;
 import org.apache.iotdb.db.qp.physical.crud.RawDataQueryPlan;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.executor.IQueryRouter;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.tsfile.exception.filter.QueryFilterOptimizationException;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Field;
@@ -190,7 +191,7 @@ public class AlignByDeviceDataSet extends QueryDataSet {
 
   protected Set<String> getDeviceMeasurements(String device) throws IOException {
     try {
-      MNode deviceNode = MManager.getInstance().getNodeByPath(device);
+      MNode deviceNode = IoTDB.getMManager().getNodeByPath(device);
       return deviceNode.getChildren().keySet();
     } catch (MetadataException e) {
       throw new IOException("Cannot get node from " + device, e);

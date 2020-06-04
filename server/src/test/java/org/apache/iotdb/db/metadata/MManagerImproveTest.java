@@ -29,6 +29,7 @@ import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.metadata.mnode.InternalMNode;
 import org.apache.iotdb.db.metadata.mnode.LeafMNode;
 import org.apache.iotdb.db.metadata.mnode.MNode;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.tsfile.common.conf.TSFileDescriptor;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -50,7 +51,7 @@ public class MManagerImproveTest {
   @Before
   public void setUp() throws Exception {
     EnvironmentUtils.envSetUp();
-    mManager = MManager.getInstance();
+    mManager = IoTDB.getMManager();
     mManager.setStorageGroup("root.t1.v2");
 
     for (int j = 0; j < DEVICE_NUM; j++) {
@@ -66,7 +67,7 @@ public class MManagerImproveTest {
 
   @Test
   public void checkSetUp() {
-    mManager = MManager.getInstance();
+    mManager = IoTDB.getMManager();
 
     assertTrue(mManager.isPathExist("root.t1.v2.d3.s5"));
     assertFalse(mManager.isPathExist("root.t1.v2.d9.s" + TIMESERIES_NUM));
@@ -75,7 +76,7 @@ public class MManagerImproveTest {
 
   @Test
   public void analyseTimeCost() throws MetadataException {
-    mManager = MManager.getInstance();
+    mManager = IoTDB.getMManager();
 
     long startTime, endTime;
     long string_combine, path_exist, list_init, check_filelevel, get_seriestype;
@@ -149,7 +150,7 @@ public class MManagerImproveTest {
 
   @Test
   public void improveTest() throws MetadataException {
-    mManager = MManager.getInstance();
+    mManager = IoTDB.getMManager();
 
     String[] deviceIdList = new String[DEVICE_NUM];
     for (int i = 0; i < DEVICE_NUM; i++) {

@@ -74,7 +74,7 @@ public abstract class TimeGenerator {
 
     if (expression.getType() == ExpressionType.SERIES) {
       SingleSeriesExpression singleSeriesExp = (SingleSeriesExpression) expression;
-      IBatchReader seriesReader = generateNewBatchReader(singleSeriesExp);
+      IBatchReader<T> seriesReader = generateNewBatchReader(singleSeriesExp);
       Path path = singleSeriesExp.getSeriesPath();
 
       if (!leafCache.containsKey(path)) {
@@ -101,7 +101,7 @@ public abstract class TimeGenerator {
     }
   }
 
-  protected abstract IBatchReader generateNewBatchReader(SingleSeriesExpression expression)
+  protected abstract IBatchReader<T> generateNewBatchReader(SingleSeriesExpression expression)
       throws IOException;
 
   public boolean hasOrNode() {

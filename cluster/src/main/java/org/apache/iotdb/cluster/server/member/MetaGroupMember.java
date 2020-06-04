@@ -132,6 +132,7 @@ import org.apache.iotdb.db.auth.authorizer.IAuthorizer;
 import org.apache.iotdb.db.auth.authorizer.LocalFileAuthorizer;
 import org.apache.iotdb.db.conf.IoTDBConstant;
 import org.apache.iotdb.db.conf.IoTDBDescriptor;
+import org.apache.iotdb.db.cost.statistic.Measurement;
 import org.apache.iotdb.db.engine.StorageEngine;
 import org.apache.iotdb.db.exception.StartupException;
 import org.apache.iotdb.db.exception.StorageEngineException;
@@ -140,9 +141,11 @@ import org.apache.iotdb.db.exception.metadata.PathNotExistException;
 import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
+import org.apache.iotdb.db.metadata.MeasurementMeta;
 import org.apache.iotdb.db.metadata.mnode.StorageGroupMNode;
 import org.apache.iotdb.db.qp.executor.PlanExecutor;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
+import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
 import org.apache.iotdb.db.query.aggregation.AggregateResult;
 import org.apache.iotdb.db.query.aggregation.AggregationType;
 import org.apache.iotdb.db.query.context.QueryContext;
@@ -150,9 +153,11 @@ import org.apache.iotdb.db.query.dataset.groupby.GroupByExecutor;
 import org.apache.iotdb.db.query.factory.AggregateResultFactory;
 import org.apache.iotdb.db.query.reader.series.IReaderByTimestamp;
 import org.apache.iotdb.db.query.reader.series.ManagedSeriesReader;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.SchemaUtils;
 import org.apache.iotdb.db.utils.SerializeUtils;
 import org.apache.iotdb.db.utils.TestOnly;
+import org.apache.iotdb.db.utils.TypeInferenceUtils;
 import org.apache.iotdb.rpc.RpcUtils;
 import org.apache.iotdb.rpc.TSStatusCode;
 import org.apache.iotdb.service.rpc.thrift.TSStatus;
@@ -1345,8 +1350,8 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
     synchronized (logManager) {
       // 0. first delete all storage groups
       try {
-        MManager.getInstance()
-            .deleteStorageGroups(MManager.getInstance().getAllStorageGroupNames());
+        IoTDB.getMManager()
+            .deleteStorageGroups(IoTDB.getMManager().getAllStorageGroupNames());
       } catch (MetadataException e) {
         logger.error("{}: first delete all local storage groups failed, errMessage:{}",
             name,
@@ -1356,7 +1361,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
       // 2.  register all storage groups
       for (Map.Entry<String, Long> entry : snapshot.getStorageGroupTTLMap().entrySet()) {
         try {
-          MManager.getInstance().setStorageGroup(entry.getKey());
+          IoTDB.getMManager().setStorageGroup(entry.getKey());
         } catch (MetadataException e) {
           logger.error("{}: Cannot add storage group {} in snapshot, errMessage:{}", name,
               entry.getKey(),
@@ -1365,7 +1370,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
 
         // 3. register ttl in the snapshot
         try {
-          MManager.getInstance().setTTL(entry.getKey(), entry.getValue());
+          IoTDB.getMManager().setTTL(entry.getKey(), entry.getValue());
           StorageEngine.getInstance().setTTL(entry.getKey(), entry.getValue());
         } catch (MetadataException | StorageEngineException | IOException e) {
           logger
@@ -1602,7 +1607,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
    * Pull the all timeseries schemas of given prefixPaths from remote nodes. All prefixPaths must
    * contain the storage group.
    */
-  public List<MeasurementSchema> pullTimeSeriesSchemas(List<String> prefixPaths)
+  public List<MeasurementMeta> pullTimeSeriesSchemas(List<String> prefixPaths, InsertPlan plan)
       throws MetadataException {
     logger.debug("{}: Pulling timeseries schemas of {}", name, prefixPaths);
     // split the paths by the data groups that will hold them
@@ -1623,7 +1628,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
       partitionGroupPathMap.computeIfAbsent(partitionGroup, g -> new ArrayList<>()).add(prefixPath);
     }
 
-    List<MeasurementSchema> schemas = new ArrayList<>();
+    List<MeasurementMeta> schemas = new ArrayList<>();
     // pull timeseries schema from every group involved
     logger.debug("{}: pulling schemas of {} from {} groups", name, prefixPaths,
         partitionGroupPathMap.size());
@@ -1631,7 +1636,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
         .entrySet()) {
       PartitionGroup partitionGroup = partitionGroupListEntry.getKey();
       List<String> paths = partitionGroupListEntry.getValue();
-      pullTimeSeriesSchemas(partitionGroup, paths, schemas);
+      pullTimeSeriesSchemas(partitionGroup, paths, schemas, plan);
     }
     logger.debug("{}: pulled {} schemas for {}", name, schemas, prefixPaths);
     return schemas;
@@ -1647,13 +1652,13 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
    * @param results
    */
   public void pullTimeSeriesSchemas(PartitionGroup partitionGroup,
-      List<String> prefixPaths, List<MeasurementSchema> results) {
+      List<String> prefixPaths, List<MeasurementMeta> results, InsertPlan plan) {
     if (partitionGroup.contains(thisNode)) {
       // the node is in the target group, synchronize with leader should be enough
       getLocalDataMember(partitionGroup.getHeader(), null,
           "Pull timeseries of " + prefixPaths).syncLeader();
       for (String prefixPath : prefixPaths) {
-        MManager.getInstance().collectSeries(prefixPath, results);
+        IoTDB.getMManager().collectSeries(prefixPath, results);
       }
       return;
     }
@@ -1662,14 +1667,21 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
     PullSchemaRequest pullSchemaRequest = new PullSchemaRequest();
     pullSchemaRequest.setHeader(partitionGroup.getHeader());
     pullSchemaRequest.setPrefixPaths(prefixPaths);
+    // may need infer type of paths
+    if (plan != null) {
+      for (int i = 0; i < plan.getValues().length; i++) {
+        TSDataType dataType = TypeInferenceUtils.getPredictedDataType(plan.getValues()[i], plan.isInferType());
+        pullSchemaRequest.addToPathDataTypes(dataType.ordinal());
+      }
+    }
 
     for (Node node : partitionGroup) {
       logger.debug("{}: Pulling timeseries schemas of {} from {}", name, prefixPaths, node);
       DataClient client;
-      List<MeasurementSchema> schemas = null;
+      List<MeasurementMeta> metas = null;
       try {
         client = getDataClient(node);
-        schemas = SyncClientAdaptor.pullTimeSeriesSchema(client, pullSchemaRequest);
+        metas = SyncClientAdaptor.pullTimeSeriesSchema(client, pullSchemaRequest);
       } catch (IOException | TException e) {
         logger
             .error("{}: Cannot pull timeseries schemas of {} from {}", name, prefixPaths, node,
@@ -1681,8 +1693,8 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
                 e);
       }
 
-      if (schemas != null) {
-        results.addAll(schemas);
+      if (metas != null) {
+        results.addAll(metas);
         break;
       }
     }
@@ -1709,15 +1721,15 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
         pathStr.add(path.getFullPath());
       }
       // pull schemas remotely
-      List<MeasurementSchema> schemas = pullTimeSeriesSchemas(pathStr);
-      if (schemas.isEmpty()) {
+      List<MeasurementMeta> metas = pullTimeSeriesSchemas(pathStr, null);
+      if (metas.isEmpty()) {
         // if one timeseries cannot be found remotely, too, it does not exist
         throw e;
       }
 
       // consider the aggregations to get the real data type
       List<TSDataType> result = new ArrayList<>();
-      for (int i = 0; i < schemas.size(); i++) {
+      for (int i = 0; i < metas.size(); i++) {
         TSDataType dataType = null;
         if (aggregations != null) {
           String aggregation = aggregations.get(i);
@@ -1726,9 +1738,9 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
           dataType = getAggregationType(aggregation);
         }
         if (dataType == null) {
-          MeasurementSchema schema = schemas.get(i);
+          MeasurementSchema schema = metas.get(i).getSchema();
           result.add(schema.getType());
-          MManager.getInstance().cacheSchema(schema.getMeasurementId(), schema);
+          //IoTDB.getMManager().cacheSchema(schema.getMeasurementId(), schema);
         } else {
           result.add(dataType);
         }
@@ -1754,8 +1766,8 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
       return SchemaUtils.getSeriesTypesByString(pathStrs, aggregation);
     } catch (PathNotExistException e) {
       // pull schemas remotely
-      List<MeasurementSchema> schemas = pullTimeSeriesSchemas(pathStrs);
-      if (schemas.isEmpty()) {
+      List<MeasurementMeta> metas = pullTimeSeriesSchemas(pathStrs, null);
+      if (metas.isEmpty()) {
         // if one timeseries cannot be found remotely, too, it does not exist
         throw e;
       }
@@ -1764,13 +1776,13 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
       List<TSDataType> result = new ArrayList<>();
       // aggregations like first/last value does not have fixed data types and will return a null
       TSDataType aggregationType = getAggregationType(aggregation);
-      for (MeasurementSchema schema : schemas) {
+      for (MeasurementMeta meta : metas) {
         if (aggregationType == null) {
-          result.add(schema.getType());
+          result.add(meta.getSchema().getType());
         } else {
           result.add(aggregationType);
         }
-        MManager.getInstance().cacheSchema(schema.getMeasurementId(), schema);
+        //IoTDB.getMManager().cacheSchema(schema.getMeasurementId(), schema);
       }
       return result;
     }
@@ -2092,7 +2104,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
       // compute the related data groups of all intervals
       // TODO-Cluster#690: change to a broadcast when the computation is too expensive
       try {
-        String storageGroupName = MManager.getInstance()
+        String storageGroupName = IoTDB.getMManager()
             .getStorageGroupName(path.getFullPath());
         Set<Node> groupHeaders = new HashSet<>();
         for (int i = 0; i < intervals.getIntervalSize(); i++) {
@@ -2229,7 +2241,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
     // added, e.g:
     // "root.*" will be translated into:
     // "root.group1" -> "root.group1.*", "root.group2" -> "root.group2.*" ...
-    Map<String, String> sgPathMap = MManager.getInstance().determineStorageGroup(originPath);
+    Map<String, String> sgPathMap = IoTDB.getMManager().determineStorageGroup(originPath);
     logger.debug("The storage groups of path {} are {}", originPath, sgPathMap.keySet());
     List<String> ret = getMatchedPaths(sgPathMap);
     logger.debug("The paths of path {} are {}", originPath, ret);
@@ -2250,7 +2262,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
     // added, e.g:
     // "root.*" will be translated into:
     // "root.group1" -> "root.group1.*", "root.group2" -> "root.group2.*" ...
-    Map<String, String> sgPathMap = MManager.getInstance().determineStorageGroup(originPath);
+    Map<String, String> sgPathMap = IoTDB.getMManager().determineStorageGroup(originPath);
     logger.debug("The storage groups of path {} are {}", originPath, sgPathMap.keySet());
     Set<String> ret = getMatchedDevices(sgPathMap);
     logger.debug("The devices of path {} are {}", originPath, ret);
@@ -2280,7 +2292,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
         // this node is a member of the group, perform a local query after synchronizing with the
         // leader
         getLocalDataMember(partitionGroup.getHeader()).syncLeader();
-        List<String> allTimeseriesName = MManager.getInstance().getAllTimeseriesName(pathUnderSG);
+        List<String> allTimeseriesName = IoTDB.getMManager().getAllTimeseriesName(pathUnderSG);
         logger.debug("{}: get matched paths of {} locally, result {}", name, partitionGroup,
             allTimeseriesName);
         result.addAll(allTimeseriesName);
@@ -2348,7 +2360,7 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
         // this node is a member of the group, perform a local query after synchronizing with the
         // leader
         getLocalDataMember(partitionGroup.getHeader()).syncLeader();
-        Set<String> allDevices = MManager.getInstance().getDevices(pathUnderSG);
+        Set<String> allDevices = IoTDB.getMManager().getDevices(pathUnderSG);
         logger.debug("{}: get matched paths of {} locally, result {}", name, partitionGroup,
             allDevices);
         result.addAll(allDevices);
@@ -2398,13 +2410,13 @@ public class MetaGroupMember extends RaftMember implements TSMetaService.AsyncIf
   public List<String> getAllStorageGroupNames() {
     // make sure this node knows all storage groups
     syncLeader();
-    return MManager.getInstance().getAllStorageGroupNames();
+    return IoTDB.getMManager().getAllStorageGroupNames();
   }
 
   public List<StorageGroupMNode> getAllStorageGroupNodes() {
     // make sure this node knows all storage groups
     syncLeader();
-    return MManager.getInstance().getAllStorageGroupNodes();
+    return IoTDB.getMManager().getAllStorageGroupNodes();
   }
 
   @SuppressWarnings("java:S2274")
