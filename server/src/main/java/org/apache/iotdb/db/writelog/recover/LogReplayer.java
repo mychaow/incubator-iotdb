@@ -19,25 +19,20 @@
 
 package org.apache.iotdb.db.writelog.recover;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.iotdb.db.engine.memtable.IMemTable;
 import org.apache.iotdb.db.engine.modification.Deletion;
 import org.apache.iotdb.db.engine.modification.ModificationFile;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 import org.apache.iotdb.db.engine.version.VersionController;
+import org.apache.iotdb.db.exception.WriteProcessException;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
-import org.apache.iotdb.db.metadata.MManager;
-import org.apache.iotdb.db.exception.WriteProcessException;
-import org.apache.iotdb.db.exception.StorageGroupProcessorException;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
-import org.apache.iotdb.db.qp.physical.crud.InsertTabletPlan;
 import org.apache.iotdb.db.qp.physical.crud.DeletePlan;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.qp.physical.crud.InsertTabletPlan;
 import org.apache.iotdb.db.qp.physical.crud.UpdatePlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.writelog.io.ILogReader;
 import org.apache.iotdb.db.writelog.manager.MultiFileLogNodeManager;
 import org.apache.iotdb.db.writelog.node.WriteLogNode;
@@ -46,6 +41,11 @@ import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * LogReplayer finds the logNode of the TsFile given by insertFilePath and logNodePrefix, reads the
@@ -147,7 +147,7 @@ public class LogReplayer {
     }
     MeasurementSchema[] schemas;
     try {
-      schemas = MManager.getInstance().getSchemas(insertTabletPlan.getDeviceId(), insertTabletPlan
+      schemas = IoTDB.metaManager.getSchemas(insertTabletPlan.getDeviceId(), insertTabletPlan
           .getMeasurements());
     } catch (MetadataException e) {
       throw new QueryProcessException(e);
@@ -175,7 +175,7 @@ public class LogReplayer {
     }
     try {
       MeasurementSchema[] schemas =
-          MManager.getInstance().getSchemas(insertPlan.getDeviceId(), insertPlan.getMeasurements());
+          IoTDB.metaManager.getSchemas(insertPlan.getDeviceId(), insertPlan.getMeasurements());
       insertPlan.setSchemasAndTransferType(schemas);
       recoverMemTable.insert(insertPlan);
     } catch (Exception e) {

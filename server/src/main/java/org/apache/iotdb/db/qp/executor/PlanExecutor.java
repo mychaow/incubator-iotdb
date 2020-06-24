@@ -18,44 +18,6 @@
  */
 package org.apache.iotdb.db.qp.executor;
 
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_CANCELLED;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_CHILD_PATHS;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_COLUMN;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_COUNT;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_CREATED_TIME;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_DEVICES;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_DONE;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_ITEM;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_PARAMETER;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_PRIVILEGE;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_PROGRESS;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_ROLE;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_STORAGE_GROUP;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TASK_NAME;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TIMESERIES;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TIMESERIES_ALIAS;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TIMESERIES_COMPRESSION;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TIMESERIES_DATATYPE;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TIMESERIES_ENCODING;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_TTL;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_USER;
-import static org.apache.iotdb.db.conf.IoTDBConstant.COLUMN_VALUE;
-import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.PATH_SEPARATOR;
-import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.TSFILE_SUFFIX;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
 import org.apache.iotdb.db.auth.AuthException;
 import org.apache.iotdb.db.auth.authorizer.BasicAuthorizer;
 import org.apache.iotdb.db.auth.authorizer.IAuthorizer;
@@ -76,11 +38,7 @@ import org.apache.iotdb.db.engine.merge.manage.MergeManager;
 import org.apache.iotdb.db.engine.merge.manage.MergeManager.TaskStatus;
 import org.apache.iotdb.db.engine.storagegroup.TsFileResource;
 import org.apache.iotdb.db.exception.StorageEngineException;
-import org.apache.iotdb.db.exception.metadata.DeleteFailedException;
-import org.apache.iotdb.db.exception.metadata.MetadataException;
-import org.apache.iotdb.db.exception.metadata.PathAlreadyExistException;
-import org.apache.iotdb.db.exception.metadata.PathNotExistException;
-import org.apache.iotdb.db.exception.metadata.StorageGroupNotSetException;
+import org.apache.iotdb.db.exception.metadata.*;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.metadata.mnode.MNode;
@@ -90,37 +48,8 @@ import org.apache.iotdb.db.qp.logical.Operator.OperatorType;
 import org.apache.iotdb.db.qp.logical.sys.AuthorOperator;
 import org.apache.iotdb.db.qp.logical.sys.AuthorOperator.AuthorType;
 import org.apache.iotdb.db.qp.physical.PhysicalPlan;
-import org.apache.iotdb.db.qp.physical.crud.AggregationPlan;
-import org.apache.iotdb.db.qp.physical.crud.AlignByDevicePlan;
-import org.apache.iotdb.db.qp.physical.crud.DeletePlan;
-import org.apache.iotdb.db.qp.physical.crud.FillQueryPlan;
-import org.apache.iotdb.db.qp.physical.crud.GroupByTimeFillPlan;
-import org.apache.iotdb.db.qp.physical.crud.GroupByTimePlan;
-import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
-import org.apache.iotdb.db.qp.physical.crud.InsertTabletPlan;
-import org.apache.iotdb.db.qp.physical.crud.LastQueryPlan;
-import org.apache.iotdb.db.qp.physical.crud.QueryPlan;
-import org.apache.iotdb.db.qp.physical.crud.RawDataQueryPlan;
-import org.apache.iotdb.db.qp.physical.crud.UpdatePlan;
-import org.apache.iotdb.db.qp.physical.sys.AlterTimeSeriesPlan;
-import org.apache.iotdb.db.qp.physical.sys.AuthorPlan;
-import org.apache.iotdb.db.qp.physical.sys.ClearCachePlan;
-import org.apache.iotdb.db.qp.physical.sys.CountPlan;
-import org.apache.iotdb.db.qp.physical.sys.CreateTimeSeriesPlan;
-import org.apache.iotdb.db.qp.physical.sys.DataAuthPlan;
-import org.apache.iotdb.db.qp.physical.sys.DeleteStorageGroupPlan;
-import org.apache.iotdb.db.qp.physical.sys.DeleteTimeSeriesPlan;
-import org.apache.iotdb.db.qp.physical.sys.FlushPlan;
-import org.apache.iotdb.db.qp.physical.sys.LoadConfigurationPlan;
-import org.apache.iotdb.db.qp.physical.sys.MergePlan;
-import org.apache.iotdb.db.qp.physical.sys.OperateFilePlan;
-import org.apache.iotdb.db.qp.physical.sys.SetStorageGroupPlan;
-import org.apache.iotdb.db.qp.physical.sys.SetTTLPlan;
-import org.apache.iotdb.db.qp.physical.sys.ShowChildPathsPlan;
-import org.apache.iotdb.db.qp.physical.sys.ShowDevicesPlan;
-import org.apache.iotdb.db.qp.physical.sys.ShowPlan;
-import org.apache.iotdb.db.qp.physical.sys.ShowTTLPlan;
-import org.apache.iotdb.db.qp.physical.sys.ShowTimeSeriesPlan;
+import org.apache.iotdb.db.qp.physical.crud.*;
+import org.apache.iotdb.db.qp.physical.sys.*;
 import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.dataset.AlignByDeviceDataSet;
 import org.apache.iotdb.db.query.dataset.ListDataSet;
@@ -128,6 +57,7 @@ import org.apache.iotdb.db.query.dataset.ShowTimeSeriesResult;
 import org.apache.iotdb.db.query.dataset.SingleDataSet;
 import org.apache.iotdb.db.query.executor.IQueryRouter;
 import org.apache.iotdb.db.query.executor.QueryRouter;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.AuthUtils;
 import org.apache.iotdb.db.utils.FileLoaderUtils;
 import org.apache.iotdb.db.utils.TypeInferenceUtils;
@@ -152,6 +82,15 @@ import org.apache.iotdb.tsfile.write.writer.RestorableTsFileIOWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.apache.iotdb.db.conf.IoTDBConstant.*;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.PATH_SEPARATOR;
+import static org.apache.iotdb.tsfile.common.constant.TsFileConstant.TSFILE_SUFFIX;
+
 public class PlanExecutor implements IPlanExecutor {
 
   private static final Logger logger = LoggerFactory.getLogger(PlanExecutor.class);
@@ -167,7 +106,7 @@ public class PlanExecutor implements IPlanExecutor {
 
   public PlanExecutor() throws QueryProcessException {
     queryRouter = new QueryRouter();
-    mManager = MManager.getInstance();
+    mManager = IoTDB.metaManager;
     try {
       authorizer = BasicAuthorizer.getInstance();
     } catch (AuthException e) {
@@ -410,19 +349,19 @@ public class PlanExecutor implements IPlanExecutor {
   }
 
   protected int getPathsNum(String path) throws MetadataException {
-    return MManager.getInstance().getAllTimeseriesCount(path);
+    return IoTDB.metaManager.getAllTimeseriesCount(path);
   }
 
   protected int getNodesNumInGivenLevel(String path, int level) throws MetadataException {
-    return MManager.getInstance().getNodesCountInGivenLevel(path, level);
+    return IoTDB.metaManager.getNodesCountInGivenLevel(path, level);
   }
 
   protected List<String> getPathsName(String path) throws MetadataException {
-    return MManager.getInstance().getAllTimeseriesName(path);
+    return IoTDB.metaManager.getAllTimeseriesName(path);
   }
 
   protected List<String> getNodesList(String schemaPattern, int level) throws MetadataException {
-    return MManager.getInstance().getNodesList(schemaPattern, level);
+    return IoTDB.metaManager.getNodesList(schemaPattern, level);
   }
 
   private QueryDataSet processCountTimeSeries(CountPlan countPlan) throws MetadataException {
@@ -457,7 +396,7 @@ public class PlanExecutor implements IPlanExecutor {
   }
 
   protected Set<String> getDevices(String path) throws MetadataException {
-    return MManager.getInstance().getDevices(path);
+    return IoTDB.metaManager.getDevices(path);
   }
 
   private QueryDataSet processShowChildPaths(ShowChildPathsPlan showChildPathsPlan)
@@ -478,11 +417,11 @@ public class PlanExecutor implements IPlanExecutor {
   }
 
   protected Set<String> getPathNextChildren(String path) throws MetadataException {
-    return MManager.getInstance().getChildNodePathInNextLevel(path);
+    return IoTDB.metaManager.getChildNodePathInNextLevel(path);
   }
 
   protected List<String> getAllStorageGroupNames() {
-    return MManager.getInstance().getAllStorageGroupNames();
+    return IoTDB.metaManager.getAllStorageGroupNames();
   }
 
   private QueryDataSet processShowStorageGroup() {
@@ -555,12 +494,12 @@ public class PlanExecutor implements IPlanExecutor {
 
   protected List<ShowTimeSeriesResult> showTimeseries(ShowTimeSeriesPlan plan)
       throws MetadataException {
-    return MManager.getInstance().showTimeseries(plan);
+    return IoTDB.metaManager.showTimeseries(plan);
   }
 
   protected List<ShowTimeSeriesResult> showTimeseriesWithIndex(ShowTimeSeriesPlan plan)
       throws MetadataException {
-    return MManager.getInstance().getAllTimeseriesSchema(plan);
+    return IoTDB.metaManager.getAllTimeseriesSchema(plan);
   }
 
   private void updateRecord(
@@ -581,7 +520,7 @@ public class PlanExecutor implements IPlanExecutor {
   }
 
   protected List<StorageGroupMNode> getAllStorageGroupNodes() {
-    return MManager.getInstance().getAllStorageGroupNodes();
+    return IoTDB.metaManager.getAllStorageGroupNodes();
   }
 
   private QueryDataSet processShowTTLQuery(ShowTTLPlan showTTLPlan) {
@@ -660,7 +599,7 @@ public class PlanExecutor implements IPlanExecutor {
         listDataSet,
         timestamp++,
         "storage group number",
-        Integer.toString(MManager.getInstance().getAllStorageGroupNames().size()));
+        Integer.toString(IoTDB.metaManager.getAllStorageGroupNames().size()));
     addRowRecordForShowQuery(
         listDataSet,
         timestamp++,
@@ -670,7 +609,7 @@ public class PlanExecutor implements IPlanExecutor {
         listDataSet,
         timestamp,
         "maximal timeseries number among storage groups",
-        Long.toString(MManager.getInstance().getMaximalSeriesNumberAmongStorageGroups()));
+        Long.toString(IoTDB.metaManager.getMaximalSeriesNumberAmongStorageGroups()));
     return listDataSet;
   }
 
@@ -877,7 +816,7 @@ public class PlanExecutor implements IPlanExecutor {
 
   private void operateTTL(SetTTLPlan plan) throws QueryProcessException {
     try {
-      MManager.getInstance().setTTL(plan.getStorageGroup(), plan.getDataTTL());
+      IoTDB.metaManager.setTTL(plan.getStorageGroup(), plan.getDataTTL());
       StorageEngine.getInstance().setTTL(plan.getStorageGroup(), plan.getDataTTL());
     } catch (MetadataException | StorageEngineException e) {
       throw new QueryProcessException(e);
@@ -975,7 +914,7 @@ public class PlanExecutor implements IPlanExecutor {
       // devices exists in MTree
       if (!IoTDBDescriptor.getInstance().getConfig().isAutoCreateSchemaEnabled()) {
         // but measurement not in MTree and cannot auto-create, try the cache
-        measurementSchema = MManager.getInstance().getSeriesSchema(deviceId, measurement);
+        measurementSchema = IoTDB.metaManager.getSeriesSchema(deviceId, measurement);
         if (measurementSchema == null) {
           throw new PathNotExistException(deviceId + PATH_SEPARATOR + measurement);
         }
@@ -994,7 +933,7 @@ public class PlanExecutor implements IPlanExecutor {
       }
     } else if (deviceNode != null) {
       // device and measurement exists in MTree
-      MeasurementMNode measurementNode = (MeasurementMNode) MManager.getInstance()
+      MeasurementMNode measurementNode = (MeasurementMNode) IoTDB.metaManager
           .getChild(deviceNode, measurement);
       measurementSchema = measurementNode.getSchema();
     } else {

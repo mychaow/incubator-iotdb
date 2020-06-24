@@ -19,13 +19,6 @@
 
 package org.apache.iotdb.db.writelog.recover;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Collections;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.iotdb.db.conf.adapter.ActiveTimeSeriesCounter;
 import org.apache.iotdb.db.constant.TestConstant;
@@ -35,8 +28,8 @@ import org.apache.iotdb.db.engine.version.VersionController;
 import org.apache.iotdb.db.exception.StorageEngineException;
 import org.apache.iotdb.db.exception.StorageGroupProcessorException;
 import org.apache.iotdb.db.exception.metadata.MetadataException;
-import org.apache.iotdb.db.metadata.MManager;
 import org.apache.iotdb.db.qp.physical.crud.InsertPlan;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.db.writelog.manager.MultiFileLogNodeManager;
 import org.apache.iotdb.db.writelog.node.WriteLogNode;
@@ -55,6 +48,13 @@ import org.apache.iotdb.tsfile.write.schema.Schema;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
 
 public class RecoverResourceFromReaderTest {
 
@@ -91,24 +91,24 @@ public class RecoverResourceFromReaderTest {
         MeasurementSchema measurementSchema = new MeasurementSchema("sensor" + j, TSDataType.INT64,
             TSEncoding.PLAIN);
         schema.registerTimeseries(path, measurementSchema);
-        MManager.getInstance().createTimeseries(path.getFullPath(), measurementSchema.getType(),
+        IoTDB.metaManager.createTimeseries(path.getFullPath(), measurementSchema.getType(),
             measurementSchema.getEncodingType(), measurementSchema.getCompressor(),
             measurementSchema.getProps());
       }
     }
     schema.registerTimeseries(new Path(("root.sg.device99"), ("sensor4")),
         new MeasurementSchema("sensor4", TSDataType.INT64, TSEncoding.PLAIN));
-    MManager.getInstance()
+    IoTDB.metaManager
         .createTimeseries("root.sg.device99.sensor4", TSDataType.INT64, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
     schema.registerTimeseries(new Path(("root.sg.device99"), ("sensor2")),
         new MeasurementSchema("sensor2", TSDataType.INT64, TSEncoding.PLAIN));
-    MManager.getInstance()
+    IoTDB.metaManager
         .createTimeseries("root.sg.device99.sensor2", TSDataType.INT64, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
     schema.registerTimeseries(new Path(("root.sg.device99"), ("sensor1")),
         new MeasurementSchema("sensor1", TSDataType.INT64, TSEncoding.PLAIN));
-    MManager.getInstance()
+    IoTDB.metaManager
         .createTimeseries("root.sg.device99.sensor1", TSDataType.INT64, TSEncoding.PLAIN,
             TSFileDescriptor.getInstance().getConfig().getCompressor(), Collections.emptyMap());
     writer = new TsFileWriter(tsF, schema);
