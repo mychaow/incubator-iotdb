@@ -102,6 +102,7 @@ import org.apache.iotdb.db.query.context.QueryContext;
 import org.apache.iotdb.db.query.control.QueryResourceManager;
 import org.apache.iotdb.db.query.reader.series.IReaderByTimestamp;
 import org.apache.iotdb.db.query.reader.series.ManagedSeriesReader;
+import org.apache.iotdb.db.service.IoTDB;
 import org.apache.iotdb.rpc.TSStatusCode;
 import org.apache.iotdb.service.rpc.thrift.TSStatus;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
@@ -214,7 +215,7 @@ public class MetaGroupMemberTest extends MemberTest {
         DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream);
         for (String prefixPath : prefixPaths) {
           if (!prefixPath.equals(TestUtils.getTestSeries(10, 0))) {
-            MManager.getInstance().collectSeries(prefixPath, schemas);
+            IoTDB.metaManager.collectSeries(prefixPath, schemas);
             dataOutputStream.writeInt(schemas.size());
             for (MeasurementSchema schema : schemas) {
               schema.serializeTo(dataOutputStream);
@@ -249,8 +250,8 @@ public class MetaGroupMemberTest extends MemberTest {
       }
 
       @Override
-      protected DataGroupMember getLocalDataMember(Node header, AsyncMethodCallback resultHandler,
-          Object request) {
+      public DataGroupMember getLocalDataMember(Node header, AsyncMethodCallback resultHandler,
+                                                Object request) {
         return getDataGroupMember(header);
       }
 
@@ -595,7 +596,7 @@ public class MetaGroupMemberTest extends MemberTest {
     testMetaMember.sendSnapshot(request, new GenericHandler(TestUtils.getNode(0), reference));
 
     // 6. check whether the snapshot applied or not
-    Map<String, Long> localStorageGroupTTL = MManager.getInstance().getStorageGroupsTTL();
+    Map<String, Long> localStorageGroupTTL = IoTDB.metaManager.getStorageGroupsTTL();
     assertNotNull(localStorageGroupTTL);
     assertEquals(storageGroupTTL, localStorageGroupTTL);
 
@@ -633,7 +634,7 @@ public class MetaGroupMemberTest extends MemberTest {
           new SetStorageGroupPlan(new Path(TestUtils.getTestSg(i)));
       TSStatus status = testMetaMember.executeNonQuery(setStorageGroupPlan);
       assertEquals(TSStatusCode.SUCCESS_STATUS.getStatusCode(), status.code);
-      assertTrue(MManager.getInstance().isPathExist(TestUtils.getTestSg(i)));
+      assertTrue(IoTDB.metaManager.isPathExist(TestUtils.getTestSg(i)));
 
       // process a partitioned plan
       TimeseriesSchema schema = TestUtils.getTestTimeSeriesSchema(i, 0);
@@ -643,7 +644,7 @@ public class MetaGroupMemberTest extends MemberTest {
           Collections.emptyMap(), Collections.emptyMap(), null);
       status = testMetaMember.executeNonQuery(createTimeSeriesPlan);
       assertEquals(TSStatusCode.SUCCESS_STATUS.getStatusCode(), status.code);
-      assertTrue(MManager.getInstance().isPathExist(TestUtils.getTestSeries(i, 0)));
+      assertTrue(IoTDB.metaManager.isPathExist(TestUtils.getTestSeries(i, 0)));
     }
     testThreadPool.shutdownNow();
   }
@@ -675,7 +676,7 @@ public class MetaGroupMemberTest extends MemberTest {
             .getSeriesTypesByString(Collections.singletonList(TestUtils.getTestSeries(9, 0)),
                 null).left);
     // a non-existent series
-    MManager.getInstance().setStorageGroup(TestUtils.getTestSg(10));
+    IoTDB.metaManager.setStorageGroup(TestUtils.getTestSg(10));
     try {
       testMetaMember.getSeriesTypesByString(Collections.singletonList(TestUtils.getTestSeries(10
           , 100)), null);
@@ -706,7 +707,7 @@ public class MetaGroupMemberTest extends MemberTest {
       insertPlan.setDeviceId(TestUtils.getTestSg(i));
       MeasurementSchema schema = TestUtils.getTestMeasurementSchema(0);
       try {
-        MManager.getInstance().createTimeseries(schema.getMeasurementId(), schema.getType()
+        IoTDB.metaManager.createTimeseries(schema.getMeasurementId(), schema.getType()
             , schema.getEncodingType(), schema.getCompressor(), schema.getProps());
       } catch (MetadataException e) {
         // ignore
@@ -751,7 +752,7 @@ public class MetaGroupMemberTest extends MemberTest {
       insertPlan.setDeviceId(TestUtils.getTestSg(i));
       MeasurementSchema schema = TestUtils.getTestMeasurementSchema(0);
       try {
-        MManager.getInstance().createTimeseries(schema.getMeasurementId(), schema.getType()
+        IoTDB.metaManager.createTimeseries(schema.getMeasurementId(), schema.getType()
             , schema.getEncodingType(), schema.getCompressor(), schema.getProps());
       } catch (MetadataException e) {
         // ignore

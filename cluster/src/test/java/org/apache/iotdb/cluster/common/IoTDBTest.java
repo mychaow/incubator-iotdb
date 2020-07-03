@@ -152,7 +152,7 @@ public class IoTDBTest {
     queryPlan.setPaths(paths);
     List<TSDataType> dataTypes = new ArrayList<>();
     for (Path path : paths) {
-      dataTypes.add(MManager.getInstance().getSeriesType(path.getFullPath()));
+      dataTypes.add(IoTDB.metaManager.getSeriesType(path.getFullPath()));
     }
     queryPlan.setDeduplicatedDataTypes(dataTypes);
     queryPlan.setDataTypes(dataTypes);

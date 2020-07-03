@@ -20,6 +20,9 @@ package org.apache.iotdb.cluster.server;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+
+import org.apache.iotdb.cluster.metadata.CMManager;
+import org.apache.iotdb.cluster.metadata.MetaPuller;
 import org.apache.iotdb.cluster.rpc.thrift.AppendEntriesRequest;
 import org.apache.iotdb.cluster.rpc.thrift.AppendEntryRequest;
 import org.apache.iotdb.cluster.rpc.thrift.CheckStatusResponse;
@@ -59,6 +62,7 @@ public class MetaClusterServer extends RaftServer implements TSMetaService.Async
   public MetaClusterServer() throws QueryProcessException {
     super();
     member = new MetaGroupMember(protocolFactory, thisNode);
+    MetaPuller.getInstance().init(member);
   }
 
   /**
@@ -72,6 +76,7 @@ public class MetaClusterServer extends RaftServer implements TSMetaService.Async
   public void start() throws TTransportException, StartupException {
     super.start();
     ioTDB = new IoTDB();
+    ioTDB.metaManager = CMManager.getInstance();
     ioTDB.active();
     member.start();
     registerManager.register(ClusterMonitor.INSTANCE);
