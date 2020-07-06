@@ -778,8 +778,9 @@ public class StorageGroupProcessor {
           continue;
         }
         // Update cached last value with high priority
-        ((MeasurementMNode) manager.getChild(node, measurementList[i]))
-            .updateCachedLast(plan.composeLastTimeValuePair(i), true, latestFlushedTime);
+        Path tmpPath = new Path(plan.getDeviceId(), measurementList[i]);
+        manager.updateLastCache(tmpPath.getFullPath(),
+          plan.composeLastTimeValuePair(i), true, latestFlushedTime);
       }
     } catch (MetadataException e) {
       throw new WriteProcessException(e);
@@ -833,11 +834,9 @@ public class StorageGroupProcessor {
           continue;
         }
         // Update cached last value with high priority
-        MNode measurementNode = manager.getChild(node, measurementList[i]);
-        if (measurementNode != null) {
-          ((MeasurementMNode) measurementNode)
-              .updateCachedLast(plan.composeTimeValuePair(i), true, latestFlushedTime);
-        }
+        Path tmpPath = new Path(plan.getDeviceId(), measurementList[i]);
+        manager.updateLastCache(tmpPath.getFullPath(),
+          plan.composeTimeValuePair(i), true, latestFlushedTime);
       }
     } catch (MetadataException e) {
       throw new WriteProcessException(e);

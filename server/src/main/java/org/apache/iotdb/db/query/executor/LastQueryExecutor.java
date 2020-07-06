@@ -114,13 +114,17 @@ public class LastQueryExecutor {
       throws IOException, QueryProcessException, StorageEngineException {
 
     // Retrieve last value from MNode
-    MeasurementMNode node;
+    MeasurementMNode node = null;
     try {
       node = (MeasurementMNode) IoTDB.metaManager.getNodeByPath(seriesPath.toString());
     } catch (MetadataException e) {
-      throw new QueryProcessException(e);
+      TimeValuePair timeValuePair = IoTDB.metaManager.getLastCache(seriesPath.getFullPath());
+      if (timeValuePair != null) {
+        return timeValuePair;
+      }
     }
-    if (node.getCachedLast() != null) {
+    
+    if (node != null && node.getCachedLast() != null) {
       return node.getCachedLast();
     }
 
@@ -182,7 +186,8 @@ public class LastQueryExecutor {
     }
 
     // Update cached last value with low priority
-    node.updateCachedLast(resultPair, false, Long.MIN_VALUE);
+    IoTDB.metaManager.updateLastCache(seriesPath.getFullPath(),
+      resultPair, false, Long.MIN_VALUE);
     return resultPair;
   }
 

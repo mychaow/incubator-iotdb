@@ -46,6 +46,7 @@ import org.apache.iotdb.tsfile.exception.write.UnSupportedDataTypeException;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
+import org.apache.iotdb.tsfile.read.TimeValuePair;
 import org.apache.iotdb.tsfile.read.common.Path;
 import org.apache.iotdb.tsfile.utils.Pair;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
@@ -101,7 +102,7 @@ public class MManager {
   private Map<String, Integer> seriesNumberInStorageGroups = new HashMap<>();
   private long maxSeriesNumberAmongStorageGroup;
   private boolean initialized;
-  private IoTDBConfig config;
+  protected IoTDBConfig config;
 
   private File logFile;
   private final int mtreeSnapshotInterval;
@@ -117,7 +118,7 @@ public class MManager {
     private static final MManager INSTANCE = new MManager();
   }
 
-  private MManager() {
+  protected MManager() {
     config = IoTDBDescriptor.getInstance().getConfig();
     mtreeSnapshotInterval = config.getMtreeSnapshotInterval();
     mtreeSnapshotThresholdTime = config.getMtreeSnapshotThresholdTime() * 1000L;
@@ -1718,9 +1719,32 @@ public class MManager {
    * if the path is in local mtree, nothing needed to do (because mtree is in the memory); Otherwise
    * cache the path to mRemoteSchemaCache
    */
-  public void cacheSchema(String path, MeasurementSchema schema) {
+  public void cacheMeta(String path, MeasurementMeta meta) {
     // do nothing
   }
+
+  public void updateLastCache(String seriesPath, TimeValuePair timeValuePair,
+                              boolean highPriorityUpdate, Long latestFlushedTime) {
+    MeasurementMNode node = null;
+    try {
+      node = (MeasurementMNode) mtree.getNodeByPath(seriesPath);
+    } catch (MetadataException e) {
+      logger.warn("the {} is not exist", seriesPath);
+      return;
+    }
+   node.updateCachedLast(timeValuePair, highPriorityUpdate, latestFlushedTime);
+  }
+
+  public TimeValuePair getLastCache(String seriesPath) {
+   try {
+     MeasurementMNode node = null;
+     node = (MeasurementMNode) mtree.getNodeByPath(seriesPath);
+     return node.getCachedLast();
+  } catch (MetadataException e) {
+     // do nothing
+  }
+  return null;
+}
 
   private void checkMTreeModified() {
     if (logWriter == null || logFile == null) {
